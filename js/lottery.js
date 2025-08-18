@@ -699,7 +699,8 @@ function adjustQuantity(change) {
     const input = document.getElementById('betQuantity');
     const newValue = parseInt(input.value) + change;
     
-    if (newValue >= 1 && newValue <= 20) {
+    // 移除投注上限，只保留最低为1的限制
+    if (newValue >= 1) {
         betQuantity = newValue;
         input.value = betQuantity;
         
@@ -713,16 +714,10 @@ function adjustQuantity(change) {
         playQuantityAdjustSound();
     } else {
         playLimitSound();
-        if (newValue < 1) {
-            showQuantityAlert('最少投注1注！');
-        } else {
-            showQuantityAlert('最多投注20注！');
-        }
+        showQuantityAlert('最少投注1注！');
         
         // 摇晃动画表示无效操作
-        const btn = change > 0 ? 
-            document.querySelector('.quantity-btn-new.plus') : 
-            document.querySelector('.quantity-btn-new.minus');
+        const btn = document.querySelector('.quantity-btn-new.minus');
         if (btn) {
             btn.style.animation = 'shake 0.5s ease-in-out';
             setTimeout(() => {
