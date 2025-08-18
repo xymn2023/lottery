@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>福利彩票模拟系统</title>
+    <link rel="icon" href="icon/logo.png" type="image/png">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- 页面加载器 -->
+    <div class="page-loader">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">🎲 彩票系统加载中...</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎲 福利彩票模拟系统 🎲</h1>
+            <p>选号 → 开奖 → 中奖 → 兑奖 完整体验</p>
+        </div>
+        
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('selection')">🎯 选号投注</button>
+            <button class="nav-tab" onclick="showTab('draw')">🎱 开奖大厅</button>
+            <button class="nav-tab" onclick="showTab('check')">🏆 中奖查询</button>
+            <button class="nav-tab" onclick="showTab('account')">💰 我的账户</button>
+        </div>
+        
+        <div class="content">
+            <!-- 选号投注页面 -->
+            <div id="selection" class="tab-content active">
+                <div class="lottery-type-selector">
+                    <button class="lottery-type-btn active" onclick="switchLotteryType('doubleColor')">🔴 双色球</button>
+                    <button class="lottery-type-btn" onclick="switchLotteryType('daletou')">🔵 大乐透</button>
+                </div>
+                
+                <!-- 双色球选号区 -->
+                <div id="doubleColorSelection" class="selection-area">
+                    <div class="ball-area">
+                        <h3>🔴 红球区 (选择6个号码，范围1-33)</h3>
+                        <div id="redBallGrid" class="ball-grid red-ball-grid"></div>
+                    </div>
+                    
+                    <div class="ball-area">
+                        <h3>🔵 蓝球区 (选择1个号码，范围1-16)</h3>
+                        <div id="blueBallGrid" class="ball-grid blue-ball-grid"></div>
+                    </div>
+                    
+                    <div class="selected-numbers">
+                        <h4>已选号码：</h4>
+                        <div class="selected-display horizontal-display">
+                            <div class="number-group">
+                                <span class="label">红球：</span>
+                                <div id="selectedRedBalls" class="selected-balls-container"></div>
+                            </div>
+                            <div class="number-group">
+                                <span class="label">蓝球：</span>
+                                <div id="selectedBlueBalls" class="selected-balls-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 大乐透选号区 -->
+                <div id="daletouSelection" class="selection-area" style="display: none;">
+                    <div class="ball-area">
+                        <h3>🟡 前区 (选择5个号码，范围1-35)</h3>
+                        <div id="frontBallGrid" class="ball-grid front-ball-grid"></div>
+                    </div>
+                    
+                    <div class="ball-area">
+                        <h3>🟣 后区 (选择2个号码，范围1-12)</h3>
+                        <div id="backBallGrid" class="ball-grid back-ball-grid"></div>
+                    </div>
+                    
+                    <div class="selected-numbers">
+                        <h4>已选号码：</h4>
+                        <div class="selected-display horizontal-display">
+                            <div class="number-group">
+                                <span class="label">前区：</span>
+                                <div id="selectedFrontBalls" class="selected-balls-container"></div>
+                            </div>
+                            <div class="number-group">
+                                <span class="label">后区：</span>
+                                <div id="selectedBackBalls" class="selected-balls-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 投注数量选择器 -->
+                <div class="bet-quantity-selector">
+                    <label for="betQuantity">投注数量：</label>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn" onclick="adjustQuantity(-1)">-</button>
+                        <input type="number" id="betQuantity" value="1" min="1" max="20" readonly>
+                        <button class="quantity-btn" onclick="adjustQuantity(1)">+</button>
+                    </div>
+                    <div class="quick-quantity">
+                        <button class="quick-btn" onclick="setQuantity(1)">1注</button>
+                        <button class="quick-btn" onclick="setQuantity(5)">5注</button>
+                        <button class="quick-btn" onclick="setQuantity(10)">10注</button>
+                        <button class="quick-btn" onclick="setQuantity(20)">20注</button>
+                    </div>
+                    <div class="cost-display">
+                        <span>总金额：¥<span id="totalCost">2</span></span>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="action-buttons">
+                    <button class="btn btn-random" onclick="randomSelect()">🎲 机选</button>
+                    <button class="btn btn-clear" onclick="clearSelection()">🗑️ 清除</button>
+                    <button class="btn" onclick="confirmTicket()">✅ 确定投注</button>
+                </div>
+                
+                <div class="tickets-area">
+                    <h3>📋 我的投注单</h3>
+                    <div id="ticketsList"></div>
+                </div>
+            </div>
+            
+            <!-- 开奖大厅页面 -->
+            <div id="draw" class="tab-content">
+                <div class="draw-area">
+                    <h2>🎱 开奖大厅</h2>
+                    <div class="countdown" id="drawCountdown">距离下次开奖：计算中...</div>
+                    
+                    <div class="lottery-type-selector">
+                        <button class="lottery-type-btn active" onclick="switchDrawType('doubleColor')">🔴 双色球开奖</button>
+                        <button class="lottery-type-btn" onclick="switchDrawType('daletou')">🔵 大乐透开奖</button>
+                    </div>
+                    
+                    <div class="draw-machine">
+                        <h3 id="drawTitle">双色球摇奖中...</h3>
+                        <div class="draw-balls" id="drawBalls"></div>
+                        <button class="btn btn-draw" onclick="startDraw()">🎰 开始摇奖</button>
+                    </div>
+                    
+                    <div class="draw-info">
+                        <h3>📊 奖金分配表</h3>
+                        <table class="prize-table" id="prizeTable">
+                            <thead>
+                                <tr>
+                                    <th>奖级</th>
+                                    <th>中奖条件</th>
+                                    <th>奖金</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prizeTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="history-area">
+                        <h3>📈 历史开奖记录</h3>
+                        <div id="drawHistory"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 中奖查询页面 -->
+            <div id="check" class="tab-content">
+                <h2>🏆 中奖查询</h2>
+                <div class="control-buttons">
+                    <button class="btn" onclick="checkAllTickets()">🔍 检查所有彩票</button>
+                    <button class="btn" onclick="claimAllPrizes()">💰 一键兑奖</button>
+                </div>
+                
+                <div id="winningResults"></div>
+            </div>
+            
+            <!-- 我的账户页面 -->
+            <div id="account" class="tab-content">
+                <div class="account-info">
+                    <h2>💰 我的账户</h2>
+                    <div class="balance" id="accountBalance">¥ 1000.00</div>
+                    <p>账户余额</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTickets">0</div>
+                        <div>总投注次数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalWins">0</div>
+                        <div>中奖次数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSpent">¥0</div>
+                        <div>总投注金额</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalWinnings">¥0</div>
+                        <div>总中奖金额</div>
+                    </div>
+                </div>
+                
+                <div class="history-area">
+                    <h3>📋 交易记录</h3>
+                    <div id="transactionHistory"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 进度指示器 -->
+    <div class="progress-indicator" id="progressIndicator"></div>
+    
+    <!-- 状态指示器 -->
+    <div class="status-indicator" id="statusIndicator"></div>
+    
+    <!-- 浮动操作按钮 -->
+    <div class="fab hidden">⬆️</div>
+    
+    <!-- 粒子背景 -->
+    <div class="particles" id="particleContainer"></div>
+    
+    <!-- 防沉迷信息 -->
+    <footer class="anti-addiction-footer">
+        <div class="footer-content">
+            <div class="warning-text">
+                <h3>⚠️ 防沉迷提醒</h3>
+                <p>本系统仅为彩票模拟演示，不涉及真实资金交易</p>
+            </div>
+            <div class="responsible-gaming">
+                <div class="notice-item">
+                    <span class="icon">🎯</span>
+                    <span>理性购彩，量力而行</span>
+                </div>
+                <div class="notice-item">
+                    <span class="icon">⏰</span>
+                    <span>适度游戏，避免沉迷</span>
+                </div>
+                <div class="notice-item">
+                    <span class="icon">🔞</span>
+                    <span>未满18周岁禁止购买彩票</span>
+                </div>
+                <div class="notice-item">
+                    <span class="icon">📞</span>
+                    <span>如需帮助请拨打：400-818-1818</span>
+                </div>
+            </div>
+            <div class="footer-links">
+                <a href="#" onclick="showResponsibleGamingModal()">负责任博彩</a>
+                <span>|</span>
+                <a href="#" onclick="showHelpModal()">帮助中心</a>
+                <span>|</span>
+                <a href="#" onclick="showDisclaimerModal()">免责声明</a>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2024 福利彩票模拟系统 - 仅供学习演示使用</p>
+                <p class="disclaimer">本系统为技术演示项目，与任何官方彩票机构无关</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 引入JavaScript文件 -->
+    <script src="js/lottery.js"></script>
+</body>
+</html>
