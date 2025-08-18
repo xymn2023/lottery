@@ -6,6 +6,7 @@
     <title>福利彩票模拟系统</title>
     <link rel="icon" href="icon/logo.png" type="image/png">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/checkin.css">
 </head>
 <body>
     <!-- 页面加载器 -->
@@ -200,6 +201,58 @@
                     </div>
                 </div>
                 
+                <!-- 签到功能区域 -->
+                <div class="checkin-area">
+                    <h3>📅 每日签到</h3>
+                    <div class="checkin-card">
+                        <div class="checkin-status">
+                            <div class="checkin-icon" id="checkinIcon">📅</div>
+                            <div class="checkin-info">
+                                <div class="checkin-title" id="checkinTitle">今日签到</div>
+                                <div class="checkin-subtitle" id="checkinSubtitle">签到获得随机余额奖励</div>
+                            </div>
+                        </div>
+                        <div class="checkin-action">
+                            <button class="btn btn-checkin" id="checkinBtn" onclick="dailyCheckin()">🎁 立即签到</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 在签到统计区域后面添加转出功能 -->
+                    <div class="checkin-stats">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalCheckins">0</div>
+                            <div>累计签到</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="checkinStreak">0</div>
+                            <div>连续签到</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="checkinRewards">¥0</div>
+                            <div>签到收益</div>
+                        </div>
+                    </div>
+                    
+                    <div class="checkin-history">
+                        <h4>📋 签到记录</h4>
+                        <div class="checkin-records" id="checkinRecords">
+                            <div class="no-records">暂无签到记录</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 补签功能区域 -->
+                    <div class="makeup-area">
+                        <h4>🔄 补签功能</h4>
+                        <div class="makeup-info">
+                            <p>错过签到？没关系！可以补签最近7天的记录</p>
+                            <p class="makeup-note">💡 补签奖励为正常签到的一半</p>
+                        </div>
+                        <div class="missed-dates" id="missedDates">
+                            <div class="no-missed">暂无可补签日期</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="history-area">
                     <h3>📋 交易记录</h3>
                     <div id="transactionHistory"></div>
@@ -261,5 +314,140 @@
     
     <!-- 引入JavaScript文件 -->
     <script src="js/lottery.js"></script>
+    <script src="js/checkin.js"></script>
 </body>
 </html>
+
+<!-- 在签到统计区域后面添加转出功能 -->
+<div class="checkin-stats">
+    <div class="stat-item">
+        <div class="stat-number" id="totalCheckins">0</div>
+        <div>累计签到</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" id="checkinStreak">0</div>
+        <div>连续签到</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" id="checkinRewards">¥0</div>
+        <div>签到收益</div>
+    </div>
+</div>
+
+<!-- 🔥 新增：转出功能区域 -->
+<div class="transfer-area">
+    <h4>💸 收益转出</h4>
+    <div class="transfer-info">
+        <div class="available-amount">
+            <span class="label">可转出金额:</span>
+            <span class="amount" id="availableTransfer">¥0</span>
+        </div>
+        <div class="transfer-actions">
+            <button class="transfer-btn" id="transferAllBtn" onclick="CheckinModule.transferToWallet('all')">
+                <span class="btn-icon">💰</span>
+                <span class="btn-text">全部转出</span>
+            </button>
+            <button class="transfer-btn partial" id="transferPartialBtn" onclick="CheckinModule.showTransferDialog()">
+                <span class="btn-icon">📊</span>
+                <span class="btn-text">部分转出</span>
+            </button>
+        </div>
+    </div>
+    <div class="transfer-history" id="transferHistory">
+        <div class="no-transfers">暂无转出记录</div>
+    </div>
+</div>
+
+<!-- 转盘入口按钮 -->
+<div class="wheel-entrance">
+    <button class="wheel-btn" onclick="openWheelModal()">
+        <span class="wheel-icon">🎰</span>
+        <span class="wheel-text">幸运转盘</span>
+    </button>
+</div>
+
+<!-- 转盘模态框 -->
+<div class="wheel-modal" id="wheelModal">
+    <div class="wheel-modal-content">
+        <div class="wheel-header">
+            <h2>🎰 幸运转盘</h2>
+            <button class="wheel-close" onclick="closeWheelModal()">&times;</button>
+        </div>
+        
+        <div class="wheel-container">
+            <!-- 转盘选择 -->
+            <div class="wheel-tabs">
+                <button class="wheel-tab active" data-type="normal" onclick="switchWheelType('normal')">
+                    <span class="tab-icon">🎯</span>
+                    <span class="tab-title">普通转盘</span>
+                    <span class="tab-desc">每天3次免费</span>
+                </button>
+                <button class="wheel-tab" data-type="premium" onclick="switchWheelType('premium')">
+                    <span class="tab-icon">💎</span>
+                    <span class="tab-title">高级转盘</span>
+                    <span class="tab-desc">100元/次</span>
+                </button>
+            </div>
+            
+            <!-- 转盘信息 -->
+            <div class="wheel-info">
+                <div class="wheel-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">今日免费次数:</span>
+                        <span class="stat-value" id="freeSpinsLeft">3</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">当前余额:</span>
+                        <span class="stat-value" id="wheelBalance">¥1000</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 转盘主体 -->
+            <div class="wheel-game">
+                <div class="wheel-wrapper">
+                    <div class="wheel-disc" id="wheelDisc">
+                        <!-- 转盘扇形区域 -->
+                        <div class="wheel-sector" data-value="50" style="transform: rotate(0deg);">50</div>
+                        <div class="wheel-sector" data-value="100" style="transform: rotate(45deg);">100</div>
+                        <div class="wheel-sector" data-value="200" style="transform: rotate(90deg);">200</div>
+                        <div class="wheel-sector" data-value="300" style="transform: rotate(135deg);">300</div>
+                        <div class="wheel-sector" data-value="500" style="transform: rotate(180deg);">500</div>
+                        <div class="wheel-sector" data-value="150" style="transform: rotate(225deg);">150</div>
+                        <div class="wheel-sector" data-value="250" style="transform: rotate(270deg);">250</div>
+                        <div class="wheel-sector" data-value="400" style="transform: rotate(315deg);">400</div>
+                    </div>
+                    <div class="wheel-pointer" id="wheelPointer"></div>
+                    <div class="wheel-center">
+                        <button class="spin-btn" id="spinBtn" onclick="spinWheel()">
+                            <span class="spin-text">开始转盘</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 转盘结果 -->
+            <div class="wheel-result" id="wheelResult">
+                <div class="result-content">
+                    <div class="result-icon">🎉</div>
+                    <div class="result-text">恭喜获得</div>
+                    <div class="result-amount">¥500</div>
+                </div>
+            </div>
+            
+            <!-- 转盘历史 -->
+            <div class="wheel-history">
+                <h3>🏆 转盘记录</h3>
+                <div class="history-list" id="wheelHistoryList">
+                    <div class="no-history">暂无转盘记录</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 在现有CSS引入后添加 -->
+<link rel="stylesheet" href="css/wheel.css">
+
+<!-- 在现有JS引入后添加 -->
+<script src="js/wheel.js"></script>

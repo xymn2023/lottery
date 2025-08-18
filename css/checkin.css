@@ -1,0 +1,924 @@
+.checkin-area {
+    margin: 30px 0;
+    padding: 25px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-radius: 20px;
+    color: white;
+    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.checkin-area::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: checkinAreaGlow 4s ease-in-out infinite;
+}
+
+.checkin-area h3 {
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.3em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    position: relative;
+    z-index: 2;
+}
+
+/* 签到卡片 */
+.checkin-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.checkin-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+/* 签到状态区域 */
+.checkin-status {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.checkin-icon {
+    font-size: 3em;
+    animation: checkinIconFloat 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+}
+
+.checkin-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.checkin-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.checkin-subtitle {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+/* 签到按钮 */
+.btn-checkin {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+    position: relative;
+    overflow: hidden;
+    font-size: 1em;
+}
+
+.btn-checkin::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.6s ease;
+}
+
+.btn-checkin:hover::before {
+    left: 100%;
+}
+
+.btn-checkin:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+.btn-checkin:active {
+    transform: translateY(0);
+}
+
+.btn-checkin:disabled {
+    background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(149, 165, 166, 0.3);
+}
+
+.btn-checkin.checked-in {
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+}
+
+/* 签到统计 */
+.checkin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.checkin-stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.checkin-stat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+}
+
+.checkin-stat-item:hover::before {
+    transform: translateX(100%);
+}
+
+.checkin-stat-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+.checkin-stat-item .stat-number {
+    font-size: 1.8em;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    position: relative;
+    z-index: 2;
+}
+
+.checkin-stat-item div:last-child {
+    position: relative;
+    z-index: 2;
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+/* 签到历史记录 */
+.checkin-history {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 2;
+}
+
+.checkin-history h4 {
+    margin-bottom: 15px;
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.checkin-records {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.3) transparent;
+}
+
+.checkin-records::-webkit-scrollbar {
+    width: 6px;
+}
+
+.checkin-records::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+}
+
+.checkin-records::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+}
+
+.checkin-records::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+.checkin-record-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: checkinRecordSlideIn 0.3s ease-out;
+    transition: all 0.3s ease;
+}
+
+.checkin-record-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(5px);
+}
+
+.checkin-record-item:last-child {
+    margin-bottom: 0;
+}
+
+.record-date {
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.record-reward {
+    color: #ffeaa7;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    font-size: 1.1em;
+}
+
+.no-records {
+    text-align: center;
+    opacity: 0.7;
+    padding: 20px;
+    font-style: italic;
+    color: rgba(255,255,255,0.8);
+}
+
+/* 动画效果 */
+@keyframes checkinAreaGlow {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(180deg); }
+}
+
+@keyframes checkinIconFloat {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+@keyframes checkinSuccess {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.05); }
+    50% { transform: scale(1.1); }
+    75% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes checkinRecordSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes checkinRewardPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+/* 签到成功特效 */
+.checkin-success {
+    animation: checkinSuccess 0.8s ease-out;
+}
+
+.checkin-success .checkin-icon {
+    animation: checkinRewardPulse 0.6s ease-out;
+}
+
+.checkin-success .record-reward {
+    animation: checkinRewardPulse 0.8s ease-out;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .checkin-area {
+        margin: 20px 0;
+        padding: 20px;
+    }
+    
+    .checkin-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .checkin-status {
+        justify-content: center;
+    }
+    
+    .checkin-icon {
+        font-size: 2.5em;
+    }
+    
+    .checkin-stats {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+    }
+    
+    .checkin-stat-item {
+        padding: 12px;
+    }
+    
+    .checkin-stat-item .stat-number {
+        font-size: 1.5em;
+    }
+    
+    .btn-checkin {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 480px) {
+    .checkin-area h3 {
+        font-size: 1.1em;
+    }
+    
+    .checkin-title {
+        font-size: 1.1em;
+    }
+    
+    .checkin-subtitle {
+        font-size: 0.8em;
+    }
+    
+    .checkin-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .checkin-record-item {
+        padding: 10px 12px;
+        font-size: 0.9em;
+    }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+    .checkin-area {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .checkin-card {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .checkin-stat-item {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .checkin-history {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .checkin-record-item {
+        background: rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* 打印样式 */
+@media print {
+    .checkin-area {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+    
+    .btn-checkin {
+        display: none;
+    }
+}
+
+/* 补签功能样式 */
+.makeup-area {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.makeup-area h4 {
+    margin-bottom: 10px;
+    text-align: center;
+    color: #ffeaa7;
+}
+
+.makeup-info {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.makeup-note {
+    color: #ffeaa7;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+.missed-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.missed-date-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.missed-date-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.missed-date-item .date-text {
+    font-weight: bold;
+}
+
+.missed-date-item .reward-text {
+    font-size: 0.8em;
+    color: #ffeaa7;
+}
+
+.no-missed {
+    text-align: center;
+    opacity: 0.7;
+    padding: 15px;
+    font-style: italic;
+}
+
+/* 内嵌式提示框样式 */
+.inline-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 400px;
+    min-width: 300px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 10000;
+    transform: translateX(100%);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0;
+}
+
+.inline-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.inline-notification.hide {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+/* 不同类型的提示框样式 */
+.inline-notification.success {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(56, 142, 60, 0.9));
+    color: white;
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.inline-notification.error {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.9), rgba(211, 47, 47, 0.9));
+    color: white;
+    border-color: rgba(244, 67, 54, 0.3);
+}
+
+.inline-notification.info {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(25, 118, 210, 0.9));
+    color: white;
+    border-color: rgba(33, 150, 243, 0.3);
+}
+
+.inline-notification.warning {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.9), rgba(245, 124, 0, 0.9));
+    color: white;
+    border-color: rgba(255, 152, 0, 0.3);
+}
+
+/* 提示框内容 */
+.notification-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.notification-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.notification-text {
+    flex: 1;
+    white-space: pre-line;
+    word-wrap: break-word;
+}
+
+.notification-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 15px;
+}
+
+.notification-message {
+    opacity: 0.95;
+    font-size: 13px;
+}
+
+/* 进度条 */
+.notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+}
+
+.notification-progress-bar {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    width: 100%;
+    transform: translateX(-100%);
+    transition: transform linear;
+}
+
+.notification-progress-bar.animate {
+    transform: translateX(0);
+}
+
+/* 关闭按钮 */
+.notification-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.notification-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .inline-notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        min-width: auto;
+        transform: translateY(-100%);
+    }
+    
+    .inline-notification.show {
+        transform: translateY(0);
+    }
+    
+    .inline-notification.hide {
+        transform: translateY(-100%);
+    }
+}
+
+/* 多个通知的堆叠效果 */
+.inline-notification:nth-child(2) {
+    top: 100px;
+}
+
+.inline-notification:nth-child(3) {
+    top: 180px;
+}
+
+.inline-notification:nth-child(4) {
+    top: 260px;
+}
+
+/* 🔥 转出功能区域样式 */
+.transfer-area {
+    margin-top: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1));
+    border-radius: 12px;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.transfer-area h4 {
+    margin: 0 0 15px 0;
+    color: #ff9800;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.transfer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.available-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.available-amount .label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}
+
+.available-amount .amount {
+    color: #ffc107;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+}
+
+.transfer-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.transfer-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.transfer-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.transfer-btn:active {
+    transform: translateY(0);
+}
+
+.transfer-btn.partial {
+    background: linear-gradient(135deg, #2196f3, #1976d2);
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.transfer-btn.partial:hover {
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+.transfer-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    opacity: 0.5;
+}
+
+.transfer-btn .btn-icon {
+    font-size: 16px;
+}
+
+.transfer-btn .btn-text {
+    font-size: 13px;
+}
+
+/* 转出历史记录 */
+.transfer-history {
+    margin-top: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.transfer-record {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #4caf50;
+    font-size: 12px;
+}
+
+.transfer-record .record-time {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.transfer-record .record-amount {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.no-transfers {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    padding: 10px;
+}
+
+/* 转出对话框 */
+.transfer-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.transfer-dialog.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.transfer-dialog-content {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-width: 400px;
+    width: 90%;
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+}
+
+.transfer-dialog.show .transfer-dialog-content {
+    transform: scale(1);
+}
+
+.dialog-title {
+    color: #ffc107;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.dialog-input-group {
+    margin-bottom: 20px;
+}
+
+.dialog-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.dialog-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.dialog-input:focus {
+    outline: none;
+    border-color: #ffc107;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+}
+
+.dialog-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.dialog-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dialog-btn.cancel {
+    background: #666;
+    color: white;
+}
+
+.dialog-btn.confirm {
+    background: #4caf50;
+    color: white;
+}
+
+.dialog-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .transfer-actions {
+        flex-direction: column;
+    }
+    
+    .transfer-btn {
+        width: 100%;
+    }
+    
+    .available-amount {
+        flex-direction: column;
+        text-align: center;
+        gap: 5px;
+    }
+}
