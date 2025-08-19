@@ -50,19 +50,20 @@
     60% { transform: translateY(-3px); }
 }
 
-/* 转盘模态框 */
+/* 转盘模态框 - 弹出式菜单设计 */
 .wheel-modal {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(10px);
+    animation: modalFadeIn 0.4s ease-out;
 }
 
 .wheel-modal.show {
@@ -71,14 +72,19 @@
 
 .wheel-modal-content {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 90vh;
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 700px;
+    width: 95%;
+    max-height: 85vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 
+        0 25px 80px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
     position: relative;
+    transform: scale(1);
+    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .wheel-header {
@@ -523,55 +529,91 @@
     padding: 20px;
 }
 
-/* 模态框动画 */
+/* 模态框动画 - 增强版弹出效果 */
 @keyframes modalFadeIn {
     from {
         opacity: 0;
-        transform: scale(0.8);
+        backdrop-filter: blur(0px);
     }
     to {
         opacity: 1;
-        transform: scale(1);
+        backdrop-filter: blur(10px);
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.7) translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
     }
 }
 
 @keyframes modalFadeOut {
     from {
         opacity: 1;
-        transform: scale(1);
+        backdrop-filter: blur(10px);
     }
     to {
         opacity: 0;
-        transform: scale(0.8);
+        backdrop-filter: blur(0px);
     }
 }
 
-/* 🔥 新增：多次转盘相关样式 */
+@keyframes modalSlideOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.8) translateY(30px);
+    }
+}
+
+/* 转盘内容居中对齐 */
+.wheel-modal-content {
+    text-align: center;
+}
+
+.wheel-modal-content > * {
+    text-align: inherit;
+}
+
+/* 🔥 多次转盘相关样式 - 统一弹出式设计 */
 .wheel-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10001;
-    backdrop-filter: blur(8px);
-    animation: modalFadeIn 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    animation: modalFadeIn 0.4s ease-out;
 }
 
-.wheel-modal {
+.wheel-modal-overlay .wheel-modal {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 500px;
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 600px;
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    box-shadow: 
+        0 25px 80px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
     position: relative;
+    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: center;
 }
 
 .modal-header {
@@ -680,7 +722,7 @@
     background: rgba(255, 255, 255, 0.3);
 }
 
-/* 多次转盘进度样式 */
+/* 多次转盘进度样式 - 优化版 */
 .multi-spin-progress {
     color: white;
     text-align: center;
@@ -694,6 +736,18 @@
 
 .progress-info {
     margin-bottom: 20px;
+}
+
+.progress-status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .progress-bar-container {
@@ -777,7 +831,7 @@
     transform: translateY(0);
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 优化弹出式转盘 */
 @media (max-width: 768px) {
     .wheel-entrance {
         top: 15%;
@@ -797,14 +851,17 @@
         font-size: 8px;
     }
     
+    /* 移动端转盘模态框优化 */
     .wheel-modal-content {
-        padding: 20px;
+        padding: 25px 20px;
         max-width: 95%;
+        max-height: 90vh;
+        border-radius: 20px;
     }
     
     .wheel-wrapper {
-        width: 250px;
-        height: 250px;
+        width: 280px;
+        height: 280px;
     }
     
     .wheel-tabs {
@@ -815,6 +872,13 @@
     .wheel-tab {
         min-width: auto;
         padding: 10px 15px;
+    }
+    
+    /* 移动端多次转盘模态框 */
+    .wheel-modal-overlay .wheel-modal {
+        padding: 25px 20px;
+        max-width: 95%;
+        border-radius: 20px;
     }
 }
 
@@ -923,5 +987,52 @@
     50% {
         box-shadow: 0 6px 20px rgba(243, 156, 18, 0.5);
         transform: scale(1.02);
+    }
+}
+
+/* 🔥 右侧通知动画 */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutToRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* 转盘模态框内的通知容器样式 */
+#wheelModal #wheel-notification-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    max-width: 300px;
+    pointer-events: none;
+}
+
+/* 确保转盘模态框有相对定位 */
+#wheelModal {
+    position: relative;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    #wheelModal #wheel-notification-container {
+        top: 10px;
+        right: 10px;
+        max-width: 250px;
     }
 }

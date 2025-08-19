@@ -42,6 +42,11 @@ const WheelModule = {
         version: '2.0.0'
     },
     
+    // 🔥 新增：多次转盘控制标志
+    multiSpinCancelled: false,
+    multiSpinPaused: false,
+    isSpinning: false,
+    
     // 转盘扇形配置
     wheelSectors: {
         normal: [
@@ -210,10 +215,25 @@ const WheelModule = {
     
     // 🔥 修复：转盘主函数（支持单次和多次）
     spin(times = 1) {
+        try {
+            console.log(`🎰 WheelModule.spin 被调用，次数: ${times}`);
+            
+            // 🔥 添加防重复调用保护
+            if (this.isSpinning) {
+                console.log('⚠️ 转盘正在运行中，忽略重复调用');
+                this.showMessage('转盘正在运行中，请稍等...', 'warning');
+                return false;
+            }
+            
         if (times === 1) {
             return this.singleSpin();
         } else {
             return this.multiSpin(times);
+            }
+        } catch (error) {
+            console.error('❌ WheelModule.spin 出错:', error);
+            this.showMessage('转盘功能出错，请刷新页面重试', 'error');
+            return false;
         }
     },
     
@@ -221,6 +241,11 @@ const WheelModule = {
     singleSpin() {
         try {
             console.log('🎰 开始单次转盘');
+            
+            // 显示单次抽奖通知
+            const wheelType = this.data.currentType === 'normal' ? '普通转盘' : '高级转盘';
+            const currentCost = this.data.currentType === 'normal' ? 0 : this.getPremiumWheelCost();
+            this.showProgressNotification(`${wheelType}正在抽奖... (费用 ¥${currentCost.toLocaleString()})`, 'progress', 2000);
             
             if (!this.canSpin()) {
                 return false;
@@ -299,8 +324,9 @@ const WheelModule = {
                 return false;
             }
             
-            // 显示多次转盘进度对话框
-            this.showMultiSpinModal(times);
+            // 🔥 直接执行多次转盘，不需要确认对话框
+            console.log(`🚀 直接执行${times}次转盘，跳过确认对话框`);
+            this.executeMultiSpin(times);
             
             return true;
             
@@ -398,36 +424,620 @@ const WheelModule = {
         this.showModalWithContent('多次转盘确认', modalHTML);
     },
     
-    // 🔥 新增：执行多次转盘
+    // 🔥 带通知的多次转盘执行
     executeMultiSpin(times) {
+        console.log(`🚨 开始${times}次转盘，使用右侧通知显示进度`);
+        
+        // 清除之前的通知
+        this.clearAllNotifications();
+        
+        // 显示开始通知
+        const wheelType = this.data.currentType === 'normal' ? '普通转盘' : '高级转盘';
+        const totalCost = this.calculateMultiSpinCost(times);
+        this.showProgressNotification(`${wheelType} 准备执行 ${times} 次 (总费用 ¥${totalCost.toLocaleString()})`, 'progress', 2000);
+        
+        this.isSpinning = true;
+        this.multiSpinCancelled = false;
+        this.multiSpinPaused = false;
+        
+        // 🔥 使用带通知的基础循环
+        this.executeBasicMultiSpinWithNotifications(times);
+    },
+    
+    // 🔥 紧急版本：最基础的多次转盘（绝对不卡死）
+    executeBasicMultiSpin(times) {
+        console.log(`🚨 开始基础多次转盘：${times}次`);
+        
         let currentSpin = 0;
         let totalRewards = 0;
         let totalCosts = 0;
         const results = [];
         
-        // 显示进度对话框
-        this.showMultiSpinProgress(times);
+        // 🔥 使用最长的间隔，确保不卡死
+        const intervalId = setInterval(() => {
+            console.log(`🔄 执行第${currentSpin + 1}次转盘`);
         
-        const executeSingleSpin = () => {
+            // 检查是否完成
             if (currentSpin >= times) {
-                // 完成所有转盘
+                console.log('✅ 基础多次转盘完成');
+                clearInterval(intervalId);
+                this.isSpinning = false;
+                
+                // 美化的结果显示
+                const netProfit = totalRewards - totalCosts;
+                console.log(`📊 最终结果: 奖励¥${totalRewards}, 费用¥${totalCosts}, 净收益¥${netProfit}`);
+                this.showBeautifulResult(times, totalRewards, totalCosts, netProfit);
+                return;
+            }
+            
+            try {
+                // 执行单次转盘
+                const spinResult = this.executeSimpleSingleSpin();
+                
+                if (spinResult.success) {
+                    results.push(spinResult);
+                    totalRewards += spinResult.reward;
+                    totalCosts += spinResult.cost;
+                    currentSpin++;
+                    
+                    console.log(`✅ 第${currentSpin}次完成，奖励¥${spinResult.reward}`);
+                } else {
+                    console.log(`❌ 第${currentSpin + 1}次失败:`, spinResult.error);
+                    if (spinResult.error === '余额不足') {
+                        clearInterval(intervalId);
+                        this.isSpinning = false;
+                        const netProfit = totalRewards - totalCosts;
+                        this.showBeautifulResult(currentSpin, totalRewards, totalCosts, netProfit, true);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 转盘执行异常:', error);
+            }
+            
+        }, 500); // 每500ms执行一次，非常慢但绝对不会卡死
+        
+        // 保存ID用于清除
+        this.currentMultiSpinInterval = intervalId;
+        
+        // 超时保护
+        setTimeout(() => {
+            if (this.currentMultiSpinInterval === intervalId) {
+                console.log('⏰ 基础转盘超时');
+                clearInterval(intervalId);
+                this.isSpinning = false;
+                alert('转盘超时停止');
+            }
+        }, times * 1000 + 10000); // 每次1秒 + 10秒缓冲
+    },
+    
+    // 🔥 新增：美化的结果弹窗
+    showBeautifulResult(completedTimes, totalRewards, totalCosts, netProfit, isIncomplete = false) {
+        const statusIcon = isIncomplete ? '⚠️' : '🎉';
+        const statusText = isIncomplete ? '转盘停止' : '转盘完成';
+        const statusColor = isIncomplete ? '#f39c12' : '#4ecdc4';
+        const profitColor = netProfit >= 0 ? '#4ecdc4' : '#ff6b6b';
+        const profitText = netProfit >= 0 ? '净收益' : '净亏损';
+        
+        const resultHTML = `
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+                animation: fadeIn 0.3s ease-out;
+            " onclick="this.remove()">
+                <div style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 20px;
+                    padding: 40px;
+                    max-width: 500px;
+                    width: 90%;
+                    color: white;
+                    text-align: center;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    animation: slideIn 0.3s ease-out;
+                    position: relative;
+                " onclick="event.stopPropagation()">
+                    
+                    <!-- 状态图标 -->
+                    <div style="
+                        font-size: 60px;
+                        margin-bottom: 20px;
+                        animation: bounce 0.6s ease-out;
+                    ">${statusIcon}</div>
+                    
+                    <!-- 标题 -->
+                    <h2 style="
+                        margin: 0 0 25px 0;
+                        font-size: 28px;
+                        font-weight: bold;
+                        color: ${statusColor};
+                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                    ">${statusText}！</h2>
+                    
+                    <!-- 完成次数 -->
+                    <div style="
+                        background: rgba(255, 255, 255, 0.15);
+                        border-radius: 15px;
+                        padding: 20px;
+                        margin-bottom: 25px;
+                        backdrop-filter: blur(10px);
+                    ">
+                        <div style="font-size: 16px; opacity: 0.9; margin-bottom: 8px;">
+                            ${isIncomplete ? '已完成次数' : '转盘次数'}
+                        </div>
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            ${completedTimes}次
+                        </div>
+                    </div>
+                    
+                    <!-- 奖励统计 -->
+                    <div style="
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 15px;
+                        margin-bottom: 30px;
+                    ">
+                        <div style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 12px;
+                            padding: 18px;
+                            border: 1px solid rgba(76, 205, 196, 0.3);
+                        ">
+                            <div style="font-size: 14px; opacity: 0.8; margin-bottom: 5px;">💰 总奖励</div>
+                            <div style="font-size: 20px; font-weight: bold; color: #4ecdc4;">
+                                ¥${totalRewards.toLocaleString()}
+                            </div>
+                        </div>
+                        <div style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 12px;
+                            padding: 18px;
+                            border: 1px solid ${profitColor.replace('#', 'rgba(').replace('4ecdc4', '76, 205, 196').replace('ff6b6b', '255, 107, 107')}, 0.3);
+                        ">
+                            <div style="font-size: 14px; opacity: 0.8; margin-bottom: 5px;">📊 ${profitText}</div>
+                            <div style="font-size: 20px; font-weight: bold; color: ${profitColor};">
+                                ¥${Math.abs(netProfit).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${totalCosts > 0 ? `
+                    <!-- 费用信息 -->
+                    <div style="
+                        background: rgba(255, 255, 255, 0.1);
+                        border-radius: 12px;
+                        padding: 15px;
+                        margin-bottom: 25px;
+                        font-size: 14px;
+                        opacity: 0.9;
+                    ">
+                        💸 总费用: ¥${totalCosts.toLocaleString()}
+                    </div>
+                    ` : ''}
+                    
+                    ${isIncomplete ? `
+                    <!-- 停止原因 -->
+                    <div style="
+                        background: rgba(243, 156, 18, 0.2);
+                        border: 1px solid rgba(243, 156, 18, 0.5);
+                        border-radius: 12px;
+                        padding: 15px;
+                        margin-bottom: 25px;
+                        color: #f39c12;
+                        font-size: 14px;
+                    ">
+                        ⚠️ 转盘因余额不足而停止
+                    </div>
+                    ` : ''}
+                    
+                    <!-- 关闭按钮 -->
+                    <button onclick="this.parentElement.parentElement.remove()" style="
+                        padding: 15px 40px;
+                        background: linear-gradient(135deg, #4ecdc4, #44a08d);
+                        border: none;
+                        border-radius: 25px;
+                        color: white;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(76, 205, 196, 0.3);
+                    ">
+                        ✅ 确定
+                    </button>
+                </div>
+            </div>
+            
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
+                @keyframes slideIn {
+                    from { 
+                        opacity: 0; 
+                        transform: scale(0.8) translateY(-50px); 
+                    }
+                    to { 
+                        opacity: 1; 
+                        transform: scale(1) translateY(0); 
+                    }
+                }
+                
+                @keyframes bounce {
+                    0%, 20%, 53%, 80%, 100% { 
+                        transform: translate3d(0,0,0); 
+                    }
+                    40%, 43% { 
+                        transform: translate3d(0,-15px,0); 
+                    }
+                    70% { 
+                        transform: translate3d(0,-7px,0); 
+                    }
+                    90% { 
+                        transform: translate3d(0,-2px,0); 
+                    }
+                }
+            </style>
+        `;
+        
+        // 创建并显示弹窗
+        const resultModal = document.createElement('div');
+        resultModal.innerHTML = resultHTML;
+        document.body.appendChild(resultModal);
+        
+        // 3秒后自动关闭（可选）
+        setTimeout(() => {
+            if (resultModal.parentNode) {
+                resultModal.remove();
+            }
+        }, 10000); // 10秒后自动关闭
+    },
+    
+    // 🔥 新增：带通知的基础多次转盘
+    executeBasicMultiSpinWithNotifications(times) {
+        console.log(`🚨 开始带通知的多次转盘：${times}次`);
+        let currentSpin = 0;
+        let totalRewards = 0;
+        let totalCosts = 0;
+        const results = [];
+        
+        // 每次抽奖都显示进度通知
+        
+        // 🔥 使用较长的间隔，确保不卡死，但比之前快一些
+        const intervalId = setInterval(() => {
+            console.log(`🔄 执行第${currentSpin + 1}次转盘`);
+            
+            // 显示当前抽奖进度
+            if (currentSpin < times) {
+                const wheelType = this.data.currentType === 'normal' ? '普通转盘' : '高级转盘';
+                this.showProgressNotification(`${wheelType} 正在抽奖 第${currentSpin + 1}次`, 'progress', 1000);
+            }
+            
+            // Check for completion
+            if (currentSpin >= times) {
+                console.log('✅ 带通知的多次转盘完成');
+                clearInterval(intervalId);
+                this.isSpinning = false;
+                
+                // 显示完成通知
+                const netProfit = totalRewards - totalCosts;
+                const wheelType = this.data.currentType === 'normal' ? '普通转盘' : '高级转盘';
+                const currentBalance = this.getCurrentBalance();
+                this.showProgressNotification(
+                    `🎉 ${wheelType} ${times}次全部完成！净收益 ¥${netProfit.toLocaleString()}，当前余额 ¥${currentBalance.toLocaleString()}`, 
+                    'success', 
+                    5000
+                );
+                
+                // 1秒后显示详细总结弹窗
+                setTimeout(() => {
+                    this.showBeautifulResult(times, totalRewards, totalCosts, netProfit);
+                }, 1000);
+                
+                return;
+            }
+            
+            try {
+                // 执行单次转盘
+                const spinResult = this.executeSimpleSingleSpin();
+                if (spinResult.success) {
+                    results.push(spinResult);
+                    totalRewards += spinResult.reward;
+                    totalCosts += spinResult.cost;
+                    currentSpin++;
+                    
+                    console.log(`✅ 第${currentSpin}次完成，奖励¥${spinResult.reward}`);
+                } else {
+                    console.log(`❌ 第${currentSpin + 1}次失败:`, spinResult.error);
+                    if (spinResult.error === '余额不足') {
+                        clearInterval(intervalId);
+                        this.isSpinning = false;
+                        
+                        // 显示余额不足通知
+                        const wheelType = this.data.currentType === 'normal' ? '普通转盘' : '高级转盘';
+                        const currentBalance = this.getCurrentBalance();
+                        this.showProgressNotification(
+                            `⚠️ ${wheelType} 余额不足停止！已完成 ${currentSpin} 次，当前余额 ¥${currentBalance.toLocaleString()}`, 
+                            'warning', 
+                            5000
+                        );
+                        
+                        // 1秒后显示总结弹窗
+                        setTimeout(() => {
+                            const netProfit = totalRewards - totalCosts;
+                            this.showBeautifulResult(currentSpin, totalRewards, totalCosts, netProfit, true);
+                        }, 1000);
+                        
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 转盘执行异常:', error);
+                // 显示错误通知
+                this.showProgressNotification(`❌ 转盘执行异常: ${error.message}`, 'error', 4000);
+            }
+            
+        }, 300); // 每300ms执行一次，比之前的500ms快一些
+        
+        this.currentMultiSpinInterval = intervalId;
+        
+        // 超时保护
+        setTimeout(() => {
+            if (this.currentMultiSpinInterval === intervalId) {
+                console.log('⏰ 带通知转盘超时');
+                clearInterval(intervalId);
+                this.isSpinning = false;
+                this.showProgressNotification('⏰ 转盘执行超时', 'error', 4000);
+            }
+        }, times * 500 + 15000); // 更合理的超时时间
+    },
+    
+    // 🔥 新增：转盘模态框内的右侧通知系统
+    showProgressNotification(message, type = 'info', duration = 3000) {
+        // 确保转盘模态框存在
+        const wheelModal = document.getElementById('wheelModal');
+        if (!wheelModal) {
+            console.warn('转盘模态框不存在，无法显示通知');
+            return;
+        }
+        
+        // 确保通知容器存在（在转盘模态框内）
+        let notificationContainer = wheelModal.querySelector('#wheel-notification-container');
+        if (!notificationContainer) {
+            notificationContainer = document.createElement('div');
+            notificationContainer.id = 'wheel-notification-container';
+            notificationContainer.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                z-index: 10;
+                max-width: 300px;
+                pointer-events: none;
+            `;
+            wheelModal.appendChild(notificationContainer);
+        }
+        
+        // 创建通知元素
+        const notification = document.createElement('div');
+        const notificationId = 'notification-' + Date.now();
+        notification.id = notificationId;
+        
+        // 根据类型设置图标和颜色
+        let icon, bgColor, borderColor;
+        switch (type) {
+            case 'progress':
+                icon = '🎰';
+                bgColor = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                borderColor = '#667eea';
+                break;
+            case 'success':
+                icon = '✅';
+                bgColor = 'linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%)';
+                borderColor = '#4ecdc4';
+                break;
+            case 'warning':
+                icon = '⚠️';
+                bgColor = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
+                borderColor = '#f39c12';
+                break;
+            case 'error':
+                icon = '❌';
+                bgColor = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)';
+                borderColor = '#ff6b6b';
+                break;
+            default:
+                icon = 'ℹ️';
+                bgColor = 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)';
+                borderColor = '#74b9ff';
+        }
+        
+        notification.style.cssText = `
+            background: ${bgColor};
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border-left: 4px solid ${borderColor};
+            backdrop-filter: blur(10px);
+            font-size: 14px;
+            line-height: 1.4;
+            pointer-events: auto;
+            cursor: pointer;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            animation: slideInFromRight 0.3s ease-out forwards;
+        `;
+        
+        notification.innerHTML = `
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <div style="font-size: 18px; flex-shrink: 0;">${icon}</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; margin-bottom: 2px; font-size: 13px; opacity: 0.9;">
+                        ${type === 'progress' ? '转盘进度' : type === 'success' ? '完成' : type === 'warning' ? '警告' : type === 'error' ? '错误' : '通知'}
+                    </div>
+                    <div>${message}</div>
+                </div>
+                <div style="font-size: 12px; opacity: 0.7; cursor: pointer;" onclick="this.parentElement.parentElement.remove()">×</div>
+            </div>
+        `;
+        
+        // 点击关闭
+        notification.onclick = () => notification.remove();
+        
+        // 添加到容器
+        notificationContainer.appendChild(notification);
+        
+        // 自动移除
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOutToRight 0.3s ease-in forwards';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, duration);
+        
+        return notificationId;
+    },
+    
+    // 🔥 新增：清除转盘模态框内的所有通知
+    clearAllNotifications() {
+        const wheelModal = document.getElementById('wheelModal');
+        if (wheelModal) {
+            const container = wheelModal.querySelector('#wheel-notification-container');
+            if (container) {
+                container.innerHTML = '';
+            }
+        }
+    },
+    
+        // 🔥 超简单版本：使用setInterval的多次转盘
+    startSimpleMultiSpin(times) {
+        let currentSpin = 0;
+        let totalRewards = 0;
+        let totalCosts = 0;
+        const results = [];
+        
+        console.log(`🚀 开始简单版多次转盘：${times}次`);
+        console.log(`🔍 转盘类型: ${this.data.currentType}`);
+        console.log(`💰 当前余额: ¥${this.getCurrentBalance()}`);
+        
+        // 🔥 使用setInterval，绝对不会卡死
+        const intervalId = setInterval(() => {
+            try {
+                console.log(`🔄 转盘interval执行，当前第${currentSpin}次，目标${times}次`);
+                
+                // 检查取消状态
+                if (this.multiSpinCancelled) {
+                    console.log('🚫 多次转盘被取消');
+                    clearInterval(intervalId);
+                    this.finishMultiSpin(results, totalRewards, totalCosts, true);
+                    return;
+                }
+                
+                // 检查暂停状态
+                if (this.multiSpinPaused) {
+                    console.log('⏸️ 转盘暂停中...');
+                    return; // 不执行，等待下次interval
+                }
+                
+                // 检查是否完成
+                if (currentSpin >= times) {
+                    console.log('✅ 所有转盘完成');
+                    clearInterval(intervalId);
                 this.finishMultiSpin(results, totalRewards, totalCosts);
                 return;
             }
             
-            // 检查费用并扣除
+                // 执行单次转盘
+                console.log(`🎯 准备执行第${currentSpin + 1}次转盘`);
+                const spinResult = this.executeSimpleSingleSpin();
+                console.log(`🎲 转盘结果:`, spinResult);
+                
+                if (!spinResult.success) {
+                    console.log('❌ 单次转盘失败：', spinResult.error);
+                    if (spinResult.error === '余额不足') {
+                        clearInterval(intervalId);
+                        this.finishMultiSpin(results, totalRewards, totalCosts, true);
+                        return;
+                    }
+                    // 其他错误继续执行
+                    return;
+                }
+                
+                // 记录结果
+                results.push(spinResult);
+                totalRewards += spinResult.reward;
+                totalCosts += spinResult.cost;
+                currentSpin++;
+                
+                console.log(`🎰 完成第${currentSpin}次转盘，奖励：¥${spinResult.reward}`);
+                console.log(`📊 累计: 奖励¥${totalRewards}, 费用¥${totalCosts}, 净收益¥${totalRewards - totalCosts}`);
+                
+                // 更新进度（包含最后一次转盘的奖励）
+                try {
+                    if (this.data.currentType === 'premium') {
+                        console.log('💎 更新高级转盘进度');
+                        this.updatePremiumMultiSpinProgress(currentSpin, times, totalRewards, totalCosts, spinResult.reward);
+                    } else {
+                        console.log('🎯 更新普通转盘进度');
+                        this.updateMultiSpinProgress(currentSpin, times, totalRewards, totalCosts, spinResult.reward);
+                    }
+                } catch (progressError) {
+                    console.error('❌ 更新进度失败:', progressError);
+                }
+                
+            } catch (error) {
+                console.error('❌ 转盘执行错误:', error);
+                // 不终止，继续执行
+            }
+        }, 150); // 每150ms执行一次，稍微慢一点避免卡死
+        
+        // 🔥 保存intervalId，以便取消时清除
+        this.currentMultiSpinInterval = intervalId;
+        console.log(`🔗 保存intervalId: ${intervalId}`);
+        
+        // 🔥 添加超时保护
+        const timeoutMs = Math.max(times * 300, 60000); // 最多1分钟或每次转盘300ms
+        console.log(`⏰ 设置超时保护: ${timeoutMs}ms`);
+        setTimeout(() => {
+            if (this.currentMultiSpinInterval === intervalId) {
+                console.log('⏰ 多次转盘超时，自动终止');
+                clearInterval(intervalId);
+                this.finishMultiSpin(results, totalRewards, totalCosts, true);
+            }
+        }, timeoutMs);
+    },
+    
+    // 🔥 超简单的单次转盘执行
+    executeSimpleSingleSpin() {
+        try {
+            // 检查费用
             const cost = this.data.currentType === 'normal' ? 0 : this.getPremiumWheelCost();
             const currentBalance = this.getCurrentBalance();
             
             if (this.data.currentType === 'premium' && currentBalance < cost) {
-                this.showMessage('余额不足，多次转盘终止', 'warning');
-                this.finishMultiSpin(results, totalRewards, totalCosts);
-                return;
+                return { success: false, error: '余额不足' };
             }
             
             // 扣除费用
             if (this.data.currentType === 'premium') {
-                this.deductCost();
+                const success = this.updateAccountBalance(-cost);
+                if (!success) {
+                    return { success: false, error: '扣费失败' };
+                }
+                this.data.premiumSpinCount++;
             } else {
                 this.data.freeSpinsUsed++;
             }
@@ -436,28 +1046,19 @@ const WheelModule = {
             const reward = this.generateReward();
             
             // 更新余额
-            this.updateBalance(reward);
+            this.updateAccountBalance(reward);
             
-            // 记录结果
-            results.push({ cost, reward, profit: reward - cost });
-            totalRewards += reward;
-            totalCosts += cost;
-            currentSpin++;
+            return {
+                success: true,
+                cost: cost,
+                reward: reward,
+                profit: reward - cost
+            };
             
-            // 更新进度
-            this.updateMultiSpinProgress(currentSpin, times, totalRewards, totalCosts);
-            
-            // 增加转盘次数
-            if (this.data.currentType === 'premium') {
-                this.data.premiumSpinCount++;
-            }
-            
-            // 继续下一次转盘
-            setTimeout(executeSingleSpin, 100);
-        };
-        
-        // 开始执行
-        executeSingleSpin();
+        } catch (error) {
+            console.error('❌ 简单单次转盘执行失败:', error);
+            return { success: false, error: error.message };
+        }
     },
     
     // 检查是否可以转盘
@@ -581,10 +1182,10 @@ const WheelModule = {
         }
     },
     
-    // 🔥 新增：创建基础转盘元素
+    // 🔥 创建弹出式转盘界面
     createBasicWheel() {
         try {
-            console.log('🔧 创建大方的转盘界面');
+            console.log('🔧 创建弹出式转盘界面');
             
             // 检查是否已有转盘模态框
             let wheelModal = document.getElementById('wheelModal');
@@ -603,8 +1204,8 @@ const WheelModule = {
                     align-items: center;
                     justify-content: center;
                     z-index: 10000;
-                    backdrop-filter: blur(8px);
-                    animation: modalFadeIn 0.3s ease-out;
+                    backdrop-filter: blur(10px);
+                    animation: modalFadeIn 0.4s ease-out;
                 `;
                 
                 wheelModal.innerHTML = `
@@ -614,11 +1215,16 @@ const WheelModule = {
                         padding: 40px;
                         max-width: 700px;
                         width: 95%;
-                        max-height: 90vh;
+                        max-height: 85vh;
                         text-align: center;
-                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        box-shadow: 
+                            0 25px 80px rgba(0, 0, 0, 0.4),
+                            0 0 0 1px rgba(255, 255, 255, 0.1),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.2);
                         position: relative;
                         overflow-y: auto;
+                        transform: scale(1);
+                        animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
                     ">
                         <!-- 🔥 大方的关闭按钮 -->
                         <div class="wheel-header" style="
@@ -783,7 +1389,7 @@ const WheelModule = {
                                     transform: translate(-50%, -50%);
                                     z-index: 5;
                                 ">
-                                    <button class="spin-btn" id="spinBtn" onclick="spinWheel()" style="
+                                    <button class="spin-btn" id="spinBtn" onclick="WheelModule.spin(1)" style="
                                         width: 100px;
                                         height: 100px;
                                         border-radius: 50%;
@@ -989,16 +1595,22 @@ const WheelModule = {
                 // 🔥 添加点击外部关闭功能
                 wheelModal.addEventListener('click', function(e) {
                     if (e.target === wheelModal) {
+                        console.log('🚪 点击外部区域关闭转盘');
                         closeWheelModal();
                     }
                 });
                 
                 // 🔥 添加ESC键关闭功能
-                document.addEventListener('keydown', function(e) {
+                const handleEscapeKey = function(e) {
                     if (e.key === 'Escape' && wheelModal.style.display === 'flex') {
+                        console.log('🚪 ESC键关闭转盘');
                         closeWheelModal();
                     }
-                });
+                };
+                
+                // 移除旧的监听器，避免重复
+                document.removeEventListener('keydown', handleEscapeKey);
+                document.addEventListener('keydown', handleEscapeKey);
                 
                 console.log('✅ 大方的转盘界面已创建');
             }
@@ -1114,6 +1726,14 @@ const WheelModule = {
     showResult(reward) {
         console.log('🎉 显示转盘结果:', reward);
         
+        // 🔥 通知系统完全接管结果显示
+        const currentBalance = this.getCurrentBalance();
+        this.showProgressNotification(
+            `🎉 恭喜获得 ¥${reward.toLocaleString()}！当前余额 ¥${currentBalance.toLocaleString()}`, 
+            'success', 
+            4000
+        );
+        
         const resultElement = document.getElementById('wheelResult');
         const spinBtn = document.getElementById('spinBtn');
         const wheelDisc = document.getElementById('wheelDisc');
@@ -1131,22 +1751,13 @@ const WheelModule = {
             }
         }
         
+        // 🔥 隐藏原有的结果显示区域
         if (resultElement) {
-            const amountElement = resultElement.querySelector('.result-amount');
-            if (amountElement) {
-                amountElement.textContent = `¥${reward.toLocaleString()}`;
-            }
-            resultElement.style.display = 'block';
-            resultElement.classList.add('show');
-            
-            setTimeout(() => {
-                resultElement.classList.remove('show');
-                resultElement.style.display = 'none';
-            }, 5000);
+            resultElement.style.display = 'none';
+            resultElement.classList.remove('show');
         }
         
-        const wheelType = this.data.currentType === 'normal' ? '普通转盘' : '高级转盘';
-        this.showMessage(`🎉 ${wheelType}中奖！\n🎯 转盘停止\n💰 获得奖励: ¥${reward.toLocaleString()}`, 'success');
+        // 🔥 原有的showMessage已被通知系统替代
         
         // 🎉 触发转盘庆祝动画（大奖金额才触发）
         if (typeof celebrationManager !== 'undefined' && reward >= 50000) {
@@ -1673,96 +2284,1067 @@ const WheelModule = {
         }
     },
     
-    // 🔥 新增：显示多次转盘进度
+    // 🔥 全新：豪华多次转盘进度弹窗
     showMultiSpinProgress(times) {
         const progressHTML = `
-            <div class="multi-spin-progress">
-                <h3>🎰 正在进行多次转盘</h3>
-                <div class="progress-info">
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="multiSpinProgressBar" style="width: 0%"></div>
+            <div class="luxury-multi-spin-progress" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 20px;
+                padding: 30px;
+                max-width: 600px;
+                width: 95%;
+                color: white;
+                font-family: 'Microsoft YaHei', sans-serif;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            ">
+                <!-- 标题区域 -->
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <h2 style="
+                        margin: 0;
+                        font-size: 24px;
+                        font-weight: bold;
+                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                    ">
+                        <span class="spinning-wheel" style="
+                            display: inline-block;
+                            animation: spin 2s linear infinite;
+                            font-size: 28px;
+                        ">🎰</span>
+                        多次转盘进行中
+                    </h2>
+                    <div style="
+                        font-size: 14px;
+                        opacity: 0.9;
+                        margin-top: 5px;
+                    ">目标：${times}次转盘</div>
                     </div>
-                    <div class="progress-text" id="multiSpinProgressText">0 / ${times}</div>
+
+                <!-- 进度条区域 -->
+                <div style="margin-bottom: 25px;">
+                    <div style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 10px;
+                    ">
+                        <span style="font-size: 16px; font-weight: bold;">进度</span>
+                        <span id="multiSpinProgressText" style="
+                            font-size: 16px;
+                            font-weight: bold;
+                            color: #ffd700;
+                        ">0 / ${times}</span>
                 </div>
-                <div class="current-results">
-                    <div class="result-item">
-                        <span>总奖励：</span>
-                        <span id="totalRewardsDisplay">¥0</span>
+                    <div style="
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 15px;
+                        height: 20px;
+                        overflow: hidden;
+                        position: relative;
+                    ">
+                        <div id="multiSpinProgressBar" style="
+                            height: 100%;
+                            width: 0%;
+                            background: linear-gradient(90deg, #ffd700, #ffed4a);
+                            border-radius: 15px;
+                            transition: width 0.3s ease;
+                            position: relative;
+                        ">
+                            <div style="
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                bottom: 0;
+                                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+                                animation: shimmer 2s infinite;
+                            "></div>
                     </div>
-                    <div class="result-item">
-                        <span>总费用：</span>
-                        <span id="totalCostsDisplay">¥0</span>
                     </div>
-                    <div class="result-item">
-                        <span>净收益：</span>
-                        <span id="netProfitDisplay">¥0</span>
                     </div>
+
+                <!-- 当前转盘状态 -->
+                <div style="
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 15px;
+                    padding: 20px;
+                    margin-bottom: 25px;
+                    backdrop-filter: blur(10px);
+                ">
+                    <div id="multiSpinStatus" style="
+                        font-size: 16px;
+                        text-align: center;
+                        margin-bottom: 15px;
+                        color: #ffd700;
+                        font-weight: bold;
+                    ">准备开始转盘...</div>
+                    
+                    <!-- 实时结果显示 -->
+                    <div style="
+                        display: grid;
+                        grid-template-columns: 1fr 1fr 1fr;
+                        gap: 15px;
+                        text-align: center;
+                    ">
+                        <div style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 10px;
+                            padding: 15px;
+                        ">
+                            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">总奖励</div>
+                            <div id="totalRewardsDisplay" style="
+                                font-size: 18px;
+                                font-weight: bold;
+                                color: #4ecdc4;
+                            ">¥0</div>
+                </div>
+                        <div style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 10px;
+                            padding: 15px;
+                        ">
+                            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">总费用</div>
+                            <div id="totalCostsDisplay" style="
+                                font-size: 18px;
+                                font-weight: bold;
+                                color: #ff6b6b;
+                            ">¥0</div>
+            </div>
+                        <div style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 10px;
+                            padding: 15px;
+                        ">
+                            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">净收益</div>
+                            <div id="netProfitDisplay" style="
+                                font-size: 18px;
+                                font-weight: bold;
+                                color: #ffd700;
+                            ">¥0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近转盘记录 -->
+                <div style="
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 15px;
+                    padding: 20px;
+                    margin-bottom: 25px;
+                    max-height: 150px;
+                    overflow-y: auto;
+                ">
+                    <div style="
+                        font-size: 14px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        text-align: center;
+                    ">🎯 最近转盘记录</div>
+                    <div id="recentSpinResults" style="
+                        font-size: 12px;
+                        line-height: 1.6;
+                    ">
+                        <div style="text-align: center; opacity: 0.7; padding: 20px;">
+                            等待转盘开始...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 控制按钮 -->
+                <div style="
+                    display: flex;
+                    gap: 15px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                ">
+                    <button id="pauseMultiSpinBtn" onclick="WheelModule.pauseMultiSpin()" style="
+                        padding: 12px 24px;
+                        background: linear-gradient(135deg, #f39c12, #e67e22);
+                        border: none;
+                        border-radius: 25px;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+                        font-size: 14px;
+                    ">⏸️ 暂停</button>
+                    
+                    <button id="cancelMultiSpinBtn" onclick="WheelModule.cancelMultiSpin()" style="
+                        padding: 12px 24px;
+                        background: linear-gradient(135deg, #e74c3c, #c0392b);
+                        border: none;
+                        border-radius: 25px;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+                        font-size: 14px;
+                    ">🚫 取消</button>
+                    
+                    <button id="emergencyStopBtn" onclick="WheelModule.emergencyStop()" style="
+                        padding: 12px 24px;
+                        background: linear-gradient(135deg, #8e44ad, #9b59b6);
+                        border: none;
+                        border-radius: 25px;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+                        font-size: 14px;
+                    ">🚨 紧急停止</button>
                 </div>
             </div>
+
+            <style>
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                
+                @keyframes shimmer {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+                
+                .luxury-multi-spin-progress button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+                }
+            </style>
         `;
         
-        this.showModalWithContent('转盘进行中', progressHTML, false);
+        this.showModalWithContent('🎰 多次转盘', progressHTML, false);
     },
     
-    // 🔥 新增：更新多次转盘进度
-    updateMultiSpinProgress(current, total, totalRewards, totalCosts) {
-        const progressBar = document.getElementById('multiSpinProgressBar');
-        const progressText = document.getElementById('multiSpinProgressText');
-        const totalRewardsDisplay = document.getElementById('totalRewardsDisplay');
-        const totalCostsDisplay = document.getElementById('totalCostsDisplay');
-        const netProfitDisplay = document.getElementById('netProfitDisplay');
+    // 🔥 新增：专门为高级转盘设计的进度窗口（简化版）
+    showPremiumMultiSpinProgress(times) {
+        console.log('💎 开始创建高级转盘进度窗口');
         
+        try {
+            const totalCost = this.calculateMultiSpinCost(times);
+            console.log(`💰 计算总费用: ¥${totalCost}`);
+            
+            const premiumProgressHTML = `
+                <div style="
+                    background: #ff6b6b;
+                    border-radius: 15px;
+                    padding: 30px;
+                    color: white;
+                    text-align: center;
+                ">
+                    <h2>💎 高级转盘进行中</h2>
+                    <p>目标：${times}次 | 总投入：¥${totalCost.toLocaleString()}</p>
+                    
+                    <div style="margin: 20px 0;">
+                        <div>进度: <span id="premiumSpinProgressText">0 / ${times}</span></div>
+                        <div style="background: rgba(255,255,255,0.3); height: 20px; border-radius: 10px; margin: 10px 0;">
+                            <div id="premiumSpinProgressBar" style="background: #ffd700; height: 100%; width: 0%; border-radius: 10px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="premiumSpinStatus">准备开始高级转盘...</div>
+                    
+                    <div style="margin: 15px 0;">
+                        <div>累计奖励: <span id="premiumTotalRewards">¥0</span></div>
+                        <div>累计费用: <span id="premiumTotalCosts">¥0</span></div>
+                        <div>净收益: <span id="premiumNetProfit">¥0</span></div>
+                    </div>
+                    
+                    <div id="premiumRecentResults" style="max-height: 100px; overflow-y: auto; margin: 15px 0;">
+                        等待高级转盘开始...
+                    </div>
+                    
+                    <button onclick="WheelModule.cancelMultiSpin()">🚫 取消转盘</button>
+                </div>
+            `;
+            
+            console.log('💎 HTML创建成功，准备显示模态框');
+            this.showModalWithContent('💎 高级转盘', premiumProgressHTML, false);
+            console.log('💎 高级转盘进度窗口显示完成');
+            
+        } catch (error) {
+            console.error('❌ 创建高级转盘进度窗口失败:', error);
+            // 如果失败，使用简单的alert
+            alert(`💎 高级转盘开始\n目标: ${times}次转盘`);
+        }
+    },
+    
+    // 🔥 新增：高级转盘专用进度更新函数
+    updatePremiumMultiSpinProgress(current, total, totalRewards, totalCosts, lastSpinReward = 0) {
+        const progressBar = document.getElementById('premiumSpinProgressBar');
+        const progressText = document.getElementById('premiumSpinProgressText');
+        const progressStatus = document.getElementById('premiumSpinStatus');
+        const totalRewardsDisplay = document.getElementById('premiumTotalRewards');
+        const totalCostsDisplay = document.getElementById('premiumTotalCosts');
+        const netProfitDisplay = document.getElementById('premiumNetProfit');
+        const recentResults = document.getElementById('premiumRecentResults');
+        
+        // 更新进度条
         if (progressBar) {
             const percentage = (current / total) * 100;
             progressBar.style.width = percentage + '%';
         }
         
+        // 更新进度文字
         if (progressText) {
             progressText.textContent = `${current} / ${total}`;
         }
         
+        // 更新状态信息
+        if (progressStatus) {
+            if (current === 0) {
+                progressStatus.textContent = '准备开始高级转盘...';
+            } else if (current < total) {
+                progressStatus.innerHTML = `🎰 完成第${current}次转盘，奖励：¥${lastSpinReward.toLocaleString()}`;
+            } else {
+                progressStatus.innerHTML = `🎉 所有高级转盘已完成！总共${total}次`;
+            }
+        }
+        
+        // 更新总奖励
         if (totalRewardsDisplay) {
             totalRewardsDisplay.textContent = `¥${totalRewards.toLocaleString()}`;
         }
         
+        // 更新总费用
         if (totalCostsDisplay) {
             totalCostsDisplay.textContent = `¥${totalCosts.toLocaleString()}`;
         }
         
+        // 更新净收益
         if (netProfitDisplay) {
             const netProfit = totalRewards - totalCosts;
             netProfitDisplay.textContent = `¥${netProfit.toLocaleString()}`;
-            netProfitDisplay.className = netProfit >= 0 ? 'profit-positive' : 'profit-negative';
+            netProfitDisplay.style.color = netProfit >= 0 ? '#4ecdc4' : '#ff6b6b';
+        }
+        
+        // 🔥 更新高级转盘记录
+        if (recentResults && lastSpinReward > 0) {
+            const newResult = document.createElement('div');
+            newResult.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 15px;
+                margin: 5px 0;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 12px;
+                border-left: 4px solid #ffd700;
+                animation: slideInRight 0.4s ease-out;
+                backdrop-filter: blur(5px);
+            `;
+            
+            // 根据奖励金额设置颜色
+            let rewardColor = '#ff6b6b';
+            let rewardIcon = '💸';
+            if (lastSpinReward >= 100000) {
+                rewardColor = '#ffd700';
+                rewardIcon = '💎';
+            } else if (lastSpinReward >= 10000) {
+                rewardColor = '#4ecdc4';
+                rewardIcon = '💰';
+            } else if (lastSpinReward >= 1000) {
+                rewardColor = '#54a0ff';
+                rewardIcon = '💵';
+            }
+            
+            newResult.innerHTML = `
+                <span style="font-weight: bold; color: #ffd700;">
+                    ${rewardIcon} 第${current}次
+                </span>
+                <span style="color: ${rewardColor}; font-weight: bold; font-size: 14px;">
+                    ¥${lastSpinReward.toLocaleString()}
+                </span>
+            `;
+            
+            // 清除初始占位符
+            if (recentResults.textContent.includes('等待高级转盘开始')) {
+                recentResults.innerHTML = '';
+            }
+            
+            // 添加到顶部
+            recentResults.insertBefore(newResult, recentResults.firstChild);
+            
+            // 保持最多显示8条记录
+            while (recentResults.children.length > 8) {
+                recentResults.removeChild(recentResults.lastChild);
+            }
         }
     },
     
-    // 🔥 新增：完成多次转盘
-    finishMultiSpin(results, totalRewards, totalCosts) {
+    // 🔥 豪华版：更新多次转盘进度（实时结果显示）
+    updateMultiSpinProgress(current, total, totalRewards, totalCosts, lastSpinReward = 0) {
+        const progressBar = document.getElementById('multiSpinProgressBar');
+        const progressText = document.getElementById('multiSpinProgressText');
+        const progressStatus = document.getElementById('multiSpinStatus');
+        const totalRewardsDisplay = document.getElementById('totalRewardsDisplay');
+        const totalCostsDisplay = document.getElementById('totalCostsDisplay');
+        const netProfitDisplay = document.getElementById('netProfitDisplay');
+        const recentSpinResults = document.getElementById('recentSpinResults');
+        
+        // 更新进度条
+        if (progressBar) {
+            const percentage = (current / total) * 100;
+            progressBar.style.width = percentage + '%';
+        }
+        
+        // 更新进度文字
+        if (progressText) {
+            progressText.textContent = `${current} / ${total}`;
+        }
+        
+        // 更新状态信息
+        if (progressStatus) {
+            if (current === 0) {
+                progressStatus.textContent = '准备开始转盘...';
+            } else if (current < total) {
+                progressStatus.innerHTML = `🎰 完成第${current}次转盘，奖励：¥${lastSpinReward.toLocaleString()}`;
+            } else {
+                progressStatus.innerHTML = `🎉 所有转盘已完成！总共${total}次转盘`;
+            }
+        }
+        
+        // 更新总奖励
+        if (totalRewardsDisplay) {
+            totalRewardsDisplay.textContent = `¥${totalRewards.toLocaleString()}`;
+        }
+        
+        // 更新总费用
+        if (totalCostsDisplay) {
+            totalCostsDisplay.textContent = `¥${totalCosts.toLocaleString()}`;
+        }
+        
+        // 更新净收益
+        if (netProfitDisplay) {
+            const netProfit = totalRewards - totalCosts;
+            netProfitDisplay.textContent = `¥${netProfit.toLocaleString()}`;
+            netProfitDisplay.style.color = netProfit >= 0 ? '#4ecdc4' : '#ff6b6b';
+        }
+        
+        // 🔥 新增：更新最近转盘记录
+        if (recentSpinResults && lastSpinReward > 0) {
+            // 创建新的转盘记录
+            const newResult = document.createElement('div');
+            newResult.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 12px;
+                margin: 4px 0;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                border-left: 3px solid #ffd700;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            const rewardColor = lastSpinReward >= 1000 ? '#4ecdc4' : 
+                               lastSpinReward >= 500 ? '#ffd700' : '#ff6b6b';
+            
+            newResult.innerHTML = `
+                <span style="font-weight: bold; color: #ffd700;">第${current}次</span>
+                <span style="color: ${rewardColor}; font-weight: bold;">¥${lastSpinReward.toLocaleString()}</span>
+            `;
+            
+            // 清除初始占位符
+            if (recentSpinResults.textContent.includes('等待转盘开始')) {
+                recentSpinResults.innerHTML = '';
+            }
+            
+            // 添加到顶部
+            recentSpinResults.insertBefore(newResult, recentSpinResults.firstChild);
+            
+            // 保持最多显示10条记录
+            while (recentSpinResults.children.length > 10) {
+                recentSpinResults.removeChild(recentSpinResults.lastChild);
+            }
+            
+            // 添加滑入动画样式
+            if (!document.getElementById('spinResultAnimation')) {
+                const style = document.createElement('style');
+                style.id = 'spinResultAnimation';
+                style.textContent = `
+                    @keyframes slideInRight {
+                        from { 
+                            opacity: 0; 
+                            transform: translateX(20px); 
+                        }
+                        to { 
+                            opacity: 1; 
+                            transform: translateX(0); 
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+    },
+    
+    // 🔥 更新：取消多次转盘（清除interval）
+    cancelMultiSpin() {
+        console.log('🚫 用户取消多次转盘');
+        this.multiSpinCancelled = true;
+        
+        // 🔥 清除interval
+        if (this.currentMultiSpinInterval) {
+            clearInterval(this.currentMultiSpinInterval);
+            this.currentMultiSpinInterval = null;
+            console.log('🚫 已清除转盘interval');
+        }
+        
+        const cancelBtn = document.getElementById('cancelMultiSpinBtn');
+        const pauseBtn = document.getElementById('pauseMultiSpinBtn');
+        
+        if (cancelBtn) {
+            cancelBtn.textContent = '🚫 正在取消...';
+            cancelBtn.disabled = true;
+            cancelBtn.style.opacity = '0.6';
+        }
+        
+        if (pauseBtn) {
+            pauseBtn.disabled = true;
+            pauseBtn.style.opacity = '0.6';
+        }
+        
+        const statusElement = document.getElementById('multiSpinStatus');
+        if (statusElement) {
+            statusElement.textContent = '正在取消转盘...';
+        }
+    },
+    
+    // 🔥 新增：暂停/恢复多次转盘
+    pauseMultiSpin() {
+        if (!this.multiSpinPaused) {
+            console.log('⏸️ 暂停多次转盘');
+            this.multiSpinPaused = true;
+            
+            const pauseBtn = document.getElementById('pauseMultiSpinBtn');
+            if (pauseBtn) {
+                pauseBtn.textContent = '▶️ 继续';
+                pauseBtn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+            }
+            
+            const statusElement = document.getElementById('multiSpinStatus');
+            if (statusElement) {
+                statusElement.textContent = '转盘已暂停...';
+            }
+        } else {
+            console.log('▶️ 恢复多次转盘');
+            this.multiSpinPaused = false;
+            
+            const pauseBtn = document.getElementById('pauseMultiSpinBtn');
+            if (pauseBtn) {
+                pauseBtn.textContent = '⏸️ 暂停';
+                pauseBtn.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+            }
+            
+            const statusElement = document.getElementById('multiSpinStatus');
+            if (statusElement) {
+                statusElement.textContent = '转盘继续进行...';
+            }
+        }
+    },
+    
+    // 🔥 更新：紧急停止功能（清除interval）
+    emergencyStop() {
+        console.log('🚨 紧急停止多次转盘');
+        
+        // 立即设置取消标志
+        this.multiSpinCancelled = true;
+        this.multiSpinPaused = false;
+        
+        // 🔥 立即清除interval
+        if (this.currentMultiSpinInterval) {
+            clearInterval(this.currentMultiSpinInterval);
+            this.currentMultiSpinInterval = null;
+            console.log('🚨 紧急清除转盘interval');
+        }
+        
+        // 更新UI
+        const emergencyBtn = document.getElementById('emergencyStopBtn');
+        const cancelBtn = document.getElementById('cancelMultiSpinBtn');
+        const pauseBtn = document.getElementById('pauseMultiSpinBtn');
+        
+        if (emergencyBtn) {
+            emergencyBtn.textContent = '🚨 已紧急停止';
+            emergencyBtn.disabled = true;
+            emergencyBtn.style.opacity = '0.6';
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.disabled = true;
+            cancelBtn.style.opacity = '0.6';
+        }
+        
+        if (pauseBtn) {
+            pauseBtn.disabled = true;
+            pauseBtn.style.opacity = '0.6';
+        }
+        
+        const statusElement = document.getElementById('multiSpinStatus');
+        if (statusElement) {
+            statusElement.textContent = '🚨 紧急停止中...';
+            statusElement.style.color = '#e74c3c';
+            statusElement.style.fontWeight = 'bold';
+        }
+        
+        // 强制关闭模态框（延迟执行）
+        setTimeout(() => {
+            this.closeMultiSpinModal();
+            this.showMessage('🚨 多次转盘已紧急停止！', 'error');
+        }, 500);
+    },
+    
+    // 🔥 优化：完成多次转盘（支持取消情况）
+    finishMultiSpin(results, totalRewards, totalCosts, isCancelled = false) {
+        // 🔥 重置控制标志
+        this.multiSpinCancelled = false;
+        this.multiSpinPaused = false;
+        this.isSpinning = false;  // 🔥 重置转盘运行状态
+        
+        // 🔥 确保清除interval
+        if (this.currentMultiSpinInterval) {
+            clearInterval(this.currentMultiSpinInterval);
+            this.currentMultiSpinInterval = null;
+            console.log('🔄 完成时清除转盘interval');
+        }
+        
         // 添加批量记录到历史
         this.addBatchToHistory(results);
         
-        // 保存数据
+        // 保存数据（批量保存，提高性能）
         this.saveData();
         
-        // 更新显示
+        // 更新显示（只更新一次，提高性能）
         this.updateDisplay();
+        this.forceUpdateBalanceDisplay();
         
         // 显示结果
         const netProfit = totalRewards - totalCosts;
         const profitText = netProfit >= 0 ? `净收益 ¥${netProfit.toLocaleString()}` : `净亏损 ¥${Math.abs(netProfit).toLocaleString()}`;
         
+        const completedCount = results.length;
+        
+        // 🔥 延迟1秒后显示最终汇总
         setTimeout(() => {
             this.closeMultiSpinModal();
-            this.showMessage(`多次转盘完成！获得奖励 ¥${totalRewards.toLocaleString()}，${profitText}`, 'success');
+            
+            // 根据转盘类型显示不同的汇总
+            if (this.data.currentType === 'premium') {
+                this.showPremiumFinalSummary(results, totalRewards, totalCosts, isCancelled);
+            } else {
+                this.showFinalMultiSpinSummary(results, totalRewards, totalCosts, isCancelled);
+            }
             
             // 大奖庆祝
-            if (totalRewards >= 50000) {
+            if (!isCancelled && totalRewards >= 50000) {
                 this.showConfetti();
                 if (typeof celebrationManager !== 'undefined') {
                     celebrationManager.triggerWheelCelebration(totalRewards);
                 }
             }
         }, 1000);
+        
+        console.log(`🎰 多次转盘${isCancelled ? '取消' : '完成'}：${completedCount}次，奖励¥${totalRewards}，${profitText}`);
+    },
+    
+    // 🔥 新增：显示最终多次转盘汇总弹窗
+    showFinalMultiSpinSummary(results, totalRewards, totalCosts, isCancelled = false) {
+        const completedCount = results.length;
+        const netProfit = totalRewards - totalCosts;
+        const profitText = netProfit >= 0 ? '净收益' : '净亏损';
+        const profitColor = netProfit >= 0 ? '#4ecdc4' : '#ff6b6b';
+        const statusIcon = isCancelled ? '⚠️' : '🎉';
+        const statusText = isCancelled ? '转盘已取消' : '转盘完成';
+        const statusColor = isCancelled ? '#f39c12' : '#4ecdc4';
+        
+        // 计算统计信息
+        const maxReward = results.length > 0 ? Math.max(...results.map(r => r.reward)) : 0;
+        const minReward = results.length > 0 ? Math.min(...results.map(r => r.reward)) : 0;
+        const avgReward = results.length > 0 ? Math.round(totalRewards / completedCount) : 0;
+        
+        const summaryHTML = `
+            <div class="final-summary" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 20px;
+                padding: 40px;
+                max-width: 650px;
+                width: 95%;
+                color: white;
+                font-family: 'Microsoft YaHei', sans-serif;
+                box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+                text-align: center;
+            ">
+                <!-- 状态标题 -->
+                <div style="margin-bottom: 30px;">
+                    <div style="
+                        font-size: 60px;
+                        margin-bottom: 15px;
+                        animation: bounce 1s ease-out;
+                    ">${statusIcon}</div>
+                    <h2 style="
+                        margin: 0;
+                        font-size: 28px;
+                        font-weight: bold;
+                        color: ${statusColor};
+                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                    ">${statusText}！</h2>
+                </div>
+
+                <!-- 主要统计 -->
+                <div style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 20px;
+                    margin-bottom: 30px;
+                ">
+                    <div style="
+                        background: rgba(255, 255, 255, 0.15);
+                        border-radius: 15px;
+                        padding: 20px;
+                        backdrop-filter: blur(10px);
+                    ">
+                        <div style="font-size: 14px; opacity: 0.8; margin-bottom: 8px;">完成次数</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #ffd700;">
+                            ${completedCount}次
+                        </div>
+                    </div>
+                    <div style="
+                        background: rgba(255, 255, 255, 0.15);
+                        border-radius: 15px;
+                        padding: 20px;
+                        backdrop-filter: blur(10px);
+                    ">
+                        <div style="font-size: 14px; opacity: 0.8; margin-bottom: 8px;">总奖励</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #4ecdc4;">
+                            ¥${totalRewards.toLocaleString()}
+                        </div>
+                    </div>
+                    <div style="
+                        background: rgba(255, 255, 255, 0.15);
+                        border-radius: 15px;
+                        padding: 20px;
+                        backdrop-filter: blur(10px);
+                    ">
+                        <div style="font-size: 14px; opacity: 0.8; margin-bottom: 8px;">${profitText}</div>
+                        <div style="font-size: 24px; font-weight: bold; color: ${profitColor};">
+                            ¥${Math.abs(netProfit).toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 详细统计 -->
+                <div style="
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 15px;
+                    padding: 25px;
+                    margin-bottom: 30px;
+                ">
+                    <h3 style="
+                        margin: 0 0 20px 0;
+                        font-size: 18px;
+                        color: #ffd700;
+                    ">📊 详细统计</h3>
+                    
+                    <div style="
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 15px;
+                        text-align: left;
+                    ">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="opacity: 0.8;">总费用：</span>
+                                <span style="color: #ff6b6b; font-weight: bold;">¥${totalCosts.toLocaleString()}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="opacity: 0.8;">平均奖励：</span>
+                                <span style="color: #ffd700; font-weight: bold;">¥${avgReward.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="opacity: 0.8;">最高奖励：</span>
+                                <span style="color: #4ecdc4; font-weight: bold;">¥${maxReward.toLocaleString()}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="opacity: 0.8;">最低奖励：</span>
+                                <span style="color: #ff6b6b; font-weight: bold;">¥${minReward.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 确认按钮 -->
+                <button onclick="WheelModule.closeFinalSummary()" style="
+                    padding: 15px 40px;
+                    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+                    border: none;
+                    border-radius: 25px;
+                    color: white;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 6px 20px rgba(76, 205, 196, 0.3);
+                ">
+                    ✅ 确认关闭
+                </button>
+            </div>
+
+            <style>
+                @keyframes bounce {
+                    0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+                    40%, 43% { transform: translate3d(0,-15px,0); }
+                    70% { transform: translate3d(0,-7px,0); }
+                    90% { transform: translate3d(0,-2px,0); }
+                }
+                
+                .final-summary button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(76, 205, 196, 0.4) !important;
+                }
+            </style>
+        `;
+        
+        this.showModalWithContent('🎰 转盘结果汇总', summaryHTML, false);
+        
+        // 记录日志
+        console.log(`🎰 多次转盘完成：${completedCount}次，奖励¥${totalRewards}，净收益 ¥${netProfit.toLocaleString()}`);
+    },
+    
+    // 🔥 新增：关闭最终汇总弹窗
+    closeFinalSummary() {
+        const modal = document.getElementById('wheelModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        
+        // 关闭所有相关的模态框
+        this.closeMultiSpinModal();
+        console.log('✅ 最终汇总弹窗已关闭');
+    },
+    
+    // 🔥 新增：高级转盘专用最终汇总弹窗
+    showPremiumFinalSummary(results, totalRewards, totalCosts, isCancelled = false) {
+        const completedCount = results.length;
+        const netProfit = totalRewards - totalCosts;
+        const profitText = netProfit >= 0 ? '净收益' : '净亏损';
+        const profitColor = netProfit >= 0 ? '#4ecdc4' : '#ff6b6b';
+        const statusIcon = isCancelled ? '⚠️' : '💎';
+        const statusText = isCancelled ? '高级转盘已取消' : '高级转盘完成';
+        const statusColor = isCancelled ? '#f39c12' : '#ffd700';
+        
+        // 计算统计信息
+        const maxReward = results.length > 0 ? Math.max(...results.map(r => r.reward)) : 0;
+        const minReward = results.length > 0 ? Math.min(...results.map(r => r.reward)) : 0;
+        const avgReward = results.length > 0 ? Math.round(totalRewards / completedCount) : 0;
+        
+        // 计算投资回报率
+        const roi = totalCosts > 0 ? ((netProfit / totalCosts) * 100).toFixed(1) : 0;
+        
+        const premiumSummaryHTML = `
+            <div class="premium-final-summary" style="
+                background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+                border-radius: 25px;
+                padding: 45px;
+                max-width: 750px;
+                width: 95%;
+                color: white;
+                font-family: 'Microsoft YaHei', sans-serif;
+                box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5);
+                text-align: center;
+                position: relative;
+                overflow: hidden;
+            ">
+                <!-- 背景装饰 -->
+                <div style="
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+                    animation: rotate 20s linear infinite;
+                    pointer-events: none;
+                "></div>
+                
+                <!-- 状态标题 -->
+                <div style="margin-bottom: 35px; position: relative; z-index: 2;">
+                    <div style="
+                        font-size: 80px;
+                        margin-bottom: 20px;
+                        animation: bounce 1.5s ease-out;
+                        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+                    ">${statusIcon}</div>
+                    <h2 style="
+                        margin: 0;
+                        font-size: 32px;
+                        font-weight: bold;
+                        color: ${statusColor};
+                        text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+                        letter-spacing: 2px;
+                    ">${statusText}！</h2>
+                </div>
+
+                <!-- 主要统计 -->
+                <div style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 25px;
+                    margin-bottom: 35px;
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <div style="
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 20px;
+                        padding: 25px;
+                        backdrop-filter: blur(15px);
+                        border: 2px solid rgba(255, 215, 0, 0.3);
+                        transform: translateY(0);
+                        transition: transform 0.3s ease;
+                    " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 15px; opacity: 0.9; margin-bottom: 10px;">💎 完成次数</div>
+                        <div style="font-size: 28px; font-weight: bold; color: #ffd700;">
+                            ${completedCount}次
+                        </div>
+                    </div>
+                    <div style="
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 20px;
+                        padding: 25px;
+                        backdrop-filter: blur(15px);
+                        border: 2px solid rgba(76, 205, 196, 0.3);
+                        transform: translateY(0);
+                        transition: transform 0.3s ease;
+                    " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 15px; opacity: 0.9; margin-bottom: 10px;">💰 总奖励</div>
+                        <div style="font-size: 28px; font-weight: bold; color: #4ecdc4;">
+                            ¥${totalRewards.toLocaleString()}
+                        </div>
+                    </div>
+                    <div style="
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 20px;
+                        padding: 25px;
+                        backdrop-filter: blur(15px);
+                        border: 2px solid ${profitColor.replace('#', 'rgba(').replace('4ecdc4', '76, 205, 196').replace('ff6b6b', '255, 107, 107')}, 0.3);
+                        transform: translateY(0);
+                        transition: transform 0.3s ease;
+                    " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 15px; opacity: 0.9; margin-bottom: 10px;">📊 ${profitText}</div>
+                        <div style="font-size: 28px; font-weight: bold; color: ${profitColor};">
+                            ¥${Math.abs(netProfit).toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 详细统计 -->
+                <div style="
+                    background: rgba(255, 255, 255, 0.15);
+                    border-radius: 20px;
+                    padding: 30px;
+                    margin-bottom: 35px;
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <h3 style="
+                        margin: 0 0 25px 0;
+                        font-size: 20px;
+                        color: #ffd700;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                    ">
+                        <span>📈</span>
+                        <span>投资分析</span>
+                        <span>📈</span>
+                    </h3>
+                    
+                    <div style="
+                        display: grid;
+                        grid-template-columns: 1fr 1fr 1fr;
+                        gap: 20px;
+                        text-align: left;
+                    ">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <span style="opacity: 0.9;">💸 总投入：</span>
+                                <span style="color: #ff6b6b; font-weight: bold;">¥${totalCosts.toLocaleString()}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <span style="opacity: 0.9;">📊 投资回报率：</span>
+                                <span style="color: ${roi >= 0 ? '#4ecdc4' : '#ff6b6b'}; font-weight: bold;">${roi}%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <span style="opacity: 0.9;">💰 平均奖励：</span>
+                                <span style="color: #ffd700; font-weight: bold;">¥${avgReward.toLocaleString()}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <span style="opacity: 0.9;">🎯 单次成本：</span>
+                                <span style="color: #ff9ff3; font-weight: bold;">¥${totalCosts > 0 ? Math.round(totalCosts / completedCount).toLocaleString() : 0}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <span style="opacity: 0.9;">🏆 最高奖励：</span>
+                                <span style="color: #4ecdc4; font-weight: bold;">¥${maxReward.toLocaleString()}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <span style="opacity: 0.9;">📉 最低奖励：</span>
+                                <span style="color: #ff6b6b; font-weight: bold;">¥${minReward.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 确认按钮 -->
+                <button onclick="WheelModule.closeFinalSummary()" style="
+                    padding: 18px 50px;
+                    background: linear-gradient(135deg, #ffd700, #ffed4a);
+                    border: none;
+                    border-radius: 30px;
+                    color: #333;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+                    position: relative;
+                    z-index: 2;
+                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+                ">
+                    ✅ 确认关闭
+                </button>
+            </div>
+
+            <style>
+                @keyframes rotate {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                
+                .premium-final-summary button:hover {
+                    transform: translateY(-3px) scale(1.05);
+                    box-shadow: 0 12px 35px rgba(255, 215, 0, 0.6) !important;
+                    background: linear-gradient(135deg, #ffed4a, #ffd700) !important;
+                }
+            </style>
+        `;
+        
+        this.showModalWithContent('💎 高级转盘结果汇总', premiumSummaryHTML, false);
+        
+        // 记录日志
+        console.log(`💎 高级转盘完成：${completedCount}次，奖励¥${totalRewards}，净收益 ¥${netProfit.toLocaleString()}`);
     },
     
     // 🔥 新增：批量添加到历史记录
@@ -1932,6 +3514,9 @@ function openWheelModal() {
         WheelModule.createBasicWheel();
     }
     
+    // 清除之前的通知
+    WheelModule.clearAllNotifications();
+    
     const modal = document.getElementById('wheelModal');
     if (modal) {
         modal.style.display = 'flex';
@@ -1950,14 +3535,26 @@ function openWheelModal() {
 }
 
 function closeWheelModal() {
+    // 清除所有通知
+    WheelModule.clearAllNotifications();
+    
     const modal = document.getElementById('wheelModal');
     if (modal) {
-        modal.style.animation = 'modalFadeOut 0.3s ease-in';
+        // 添加关闭动画
+        modal.style.animation = 'modalFadeOut 0.4s ease-in-out';
+        const content = modal.querySelector('.wheel-modal-content');
+        if (content) {
+            content.style.animation = 'modalSlideOut 0.4s ease-in-out';
+        }
+        
         setTimeout(() => {
             modal.style.display = 'none';
             modal.style.animation = '';
-        }, 300);
-        console.log('🚪 转盘已关闭');
+            if (content) {
+                content.style.animation = '';
+            }
+        }, 400);
+        console.log('🚪 转盘弹出窗口已关闭');
     }
 }
 
@@ -1986,10 +3583,6 @@ function minimizeWheelModal() {
 
 function switchWheelType(type) {
     WheelModule.switchType(type);
-}
-
-function spinWheel() {
-    WheelModule.spin();
 }
 
 // 页面加载完成后初始化
