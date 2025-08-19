@@ -922,3 +922,263 @@
         gap: 5px;
     }
 }
+
+/* 在文件末尾添加新的签到界面样式 */
+
+/* 签到切换标签样式 */
+.checkin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.checkin-tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.checkin-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    color: #495057;
+}
+
+.checkin-tab:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.checkin-tab.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.checkin-tab .tab-icon {
+    font-size: 16px;
+}
+
+.checkin-tab .tab-text {
+    font-weight: 500;
+}
+
+/* 签到内容面板 */
+.checkin-content {
+    position: relative;
+    min-height: 400px;
+}
+
+.checkin-panel {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.checkin-panel.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 签到主界面优化 */
+.signin-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.signin-status {
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 16px;
+    color: white;
+}
+
+.status-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.status-text {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.signin-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.signin-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* 签到统计优化 */
+.signin-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.signin-stats .stat-item {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.signin-stats .stat-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* 转出功能样式优化 */
+.transfer-section {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.transfer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.available-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.available-amount .label {
+    color: #495057;
+}
+
+.available-amount .amount {
+    color: #28a745;
+    font-size: 18px;
+}
+
+.transfer-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.transfer-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.transfer-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.transfer-btn.partial {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.transfer-btn.partial:hover {
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+/* 补签界面优化 */
+.makeup-main {
+    padding: 20px;
+}
+
+.makeup-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.makeup-header h3 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.makeup-header p {
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.makeup-note {
+    background: #fff3cd;
+    color: #856404;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ffeaa7;
+    font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .checkin-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .checkin-tabs {
+        justify-content: center;
+    }
+    
+    .signin-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .transfer-actions {
+        flex-direction: column;
+    }
+}

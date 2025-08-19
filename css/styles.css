@@ -6,17 +6,30 @@
     transition: all 0.3s ease;
 }
 
-body {
-    font-family: 'Microsoft YaHei', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
+/* 🔥 全局约束：确保所有内容都不超过防沉迷底线 */
+.container {
+    max-height: calc(100vh - 200px); /* 🔥 为防沉迷区域预留空间 */
+    overflow-y: auto;
+    contain: layout style;
 }
+
+.content {
+    max-height: calc(100vh - 250px); /* 🔥 为防沉迷区域和导航预留空间 */
+    overflow-y: auto;
+}
+
+.tab-content {
+    max-height: calc(100vh - 300px); /* 🔥 为防沉迷区域、导航和头部预留空间 */
+    overflow-y: auto;
+}
+
+
 
 /* 容器样式 */
 .container {
-    max-width: 1200px;
+    max-width: calc(100% - 120px); /* 为右侧转盘按钮留出空间 */
     margin: 0 auto;
+    padding: 20px;
     background: white;
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -94,7 +107,7 @@ body {
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 25%;
+    width: 20%; /* 🔥 调整为5个标签的宽度 */
     height: 3px;
     background: linear-gradient(45deg, #e74c3c, #c0392b);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -107,7 +120,7 @@ body {
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 25%;
+    width: 20%; /* 🔥 调整为5个标签的宽度 */
     height: 100%;
     background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(192, 57, 43, 0.05));
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -175,40 +188,54 @@ body {
 /* 彩票类型选择器 */
 .lottery-type-selector {
     display: flex;
-    gap: 20px;
+    gap: 15px;
+    margin-bottom: 25px;
     justify-content: center;
-    margin: 20px 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
 
 .lottery-type-btn {
-    padding: 12px 30px;
-    border: 2px solid #bdc3c7;
-    background: white;
+    padding: 15px 30px;
+    border: none;
     border-radius: 25px;
-    font-size: 1.1em;
+    font-size: 16px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    min-width: 120px;
 }
 
 .lottery-type-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
 }
 
 .lottery-type-btn.active {
-    background: linear-gradient(45deg, #e74c3c, #c0392b);
-    color: white;
-    border-color: #c0392b;
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
 }
 
 /* 选号区域 */
 .selection-area {
+    width: 100%;
+    max-width: 100%;
     margin: 30px 0;
+    margin-right: 0;
+    margin-bottom: 20px;
+    /* 确保不被转盘按钮遮挡 */
 }
 
 .ball-area {
-    margin: 30px 0;
+    margin: 30px 0 15px 0; /* 🔥 减少下边距，让白线距离更近 */
     padding: 20px;
     background: #f8f9fa;
     border-radius: 15px;
@@ -223,7 +250,12 @@ body {
 
 .ball-grid {
     display: grid;
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+    gap: 8px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-bottom: 20px;
     justify-content: center;
     margin: 20px 0;
 }
@@ -233,7 +265,7 @@ body {
     grid-template-columns: repeat(11, 1fr);
     gap: 8px;
     justify-content: center;
-    margin: 20px auto;
+    margin: 20px auto 10px auto; /* 🔥 减少下边距，让与白色区域距离更近 */
     max-width: 650px;
     padding: 15px;
 }
@@ -243,7 +275,7 @@ body {
     grid-template-columns: repeat(8, 1fr);
     gap: 10px;
     justify-content: center;
-    margin: 20px auto;
+    margin: 20px auto 10px auto; /* 🔥 减少下边距，让与白色区域距离更近 */
     max-width: 400px;
     padding: 15px;
 }
@@ -253,7 +285,7 @@ body {
     grid-template-columns: repeat(7, 1fr);
     gap: 8px;
     justify-content: center;
-    margin: 20px auto;
+    margin: 20px auto 10px auto; /* 🔥 减少下边距，保持一致性 */
     max-width: 500px;
     padding: 15px;
 }
@@ -263,7 +295,7 @@ body {
     grid-template-columns: repeat(6, 1fr);
     gap: 10px;
     justify-content: center;
-    margin: 20px auto;
+    margin: 20px auto 10px auto; /* 🔥 减少下边距，保持一致性 */
     max-width: 300px;
     padding: 15px;
 }
@@ -285,6 +317,19 @@ body {
     position: relative;
     overflow: hidden;
     transform-style: preserve-3d;
+}
+
+/* 红蓝球区域间距优化 */
+.ball-selection {
+    margin-bottom: 10px;
+}
+
+.selected-section {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    border: 2px solid #e9ecef;
+    margin-top: 5px;
 }
 
 .ball::before {
@@ -327,11 +372,11 @@ body {
 }
 
 .front-ball {
-    background: linear-gradient(45deg, #f39c12, #e67e22);
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
 }
 
 .back-ball {
-    background: linear-gradient(45deg, #9b59b6, #8e44ad);
+    background: linear-gradient(45deg, #3498db, #2980b9);
 }
 
 /* 已选号码显示 */
@@ -347,6 +392,40 @@ body {
     margin-bottom: 15px;
     color: #2c3e50;
     text-align: center;
+}
+
+.selected-display {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 5px; /* 🔥 减少上边距，让白线距离更近 */
+    margin-bottom: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.selected-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: center;
+}
+
+.selected-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    min-height: 60px;
+}
+
+.selected-row .label {
+    font-weight: bold;
+    font-size: 16px;
+    color: #495057;
+    min-width: 60px;
 }
 
 .horizontal-display {
@@ -378,8 +457,9 @@ body {
 
 .selected-balls-container {
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
     align-items: center;
     min-height: 40px;
     padding: 5px 10px;
@@ -416,14 +496,16 @@ body {
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
-/* 投注数量选择器 */
+/* 🔥 投注数量选择器优化 */
 .bet-quantity-selector {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border: 2px solid #dee2e6;
+    background: #f8f9fa;
     border-radius: 15px;
     padding: 20px;
     margin: 20px 0;
+    border: 2px solid #e9ecef;
     text-align: center;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .bet-quantity-selector label {
@@ -437,19 +519,19 @@ body {
 .quantity-controls {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    gap: 12px;
     margin: 15px 0;
+    justify-content: center;
 }
 
 .quantity-btn {
     width: 40px;
     height: 40px;
     border: 2px solid #007bff;
-    background: linear-gradient(45deg, #007bff, #0056b3);
+    background: #007bff;
     color: white;
     border-radius: 50%;
-    font-size: 1.2em;
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -459,7 +541,9 @@ body {
 }
 
 .quantity-btn:hover {
-    transform: scale(1.1);
+    background: #0056b3;
+    border-color: #0056b3;
+    transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
 
@@ -468,50 +552,26 @@ body {
 }
 
 #betQuantity {
-    width: 80px;
+    width: 100px;
     height: 40px;
     text-align: center;
-    font-size: 1.2em;
+    font-size: 16px;
     font-weight: bold;
     border: 2px solid #007bff;
     border-radius: 8px;
     background: white;
     color: #007bff;
+    outline: none;
 }
 
 #betQuantity:focus {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(52, 152, 219, 0.4);
+    border-color: #0056b3;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-.quick-quantity {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin: 15px 0;
-    flex-wrap: wrap;
-}
+/* 🔥 移除重复定义 */
 
-.quick-btn {
-    padding: 8px 16px;
-    border: 2px solid #28a745;
-    background: linear-gradient(45deg, #28a745, #20c997);
-    color: white;
-    border-radius: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.quick-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-}
-
-.quick-btn.active {
-    background: linear-gradient(45deg, #dc3545, #c82333);
-    border-color: #dc3545;
-}
+/* 🔥 快捷按钮基础样式已在后面统一定义 */
 
 .cost-display {
     margin-top: 15px;
@@ -647,17 +707,17 @@ body {
     font-size: 1.1em;
 }
 
-/* 快速选择区域优化 */
+/* 🔥 快捷按钮优化布局 */
 .quick-quantity {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
     margin: 15px 0;
     padding: 15px;
-    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    background: rgba(102, 126, 234, 0.05);
     border-radius: 12px;
-    border: 1px solid #e1bee7;
-    flex-wrap: wrap;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    max-width: 100%;
 }
 
 .quick-label {
@@ -667,56 +727,25 @@ body {
     font-size: 1em;
 }
 
-.quick-btn {
-    padding: 8px 16px;
-    border: 2px solid #9c27b0;
-    background: linear-gradient(45deg, #9c27b0, #7b1fa2);
-    color: white;
-    border-radius: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9em;
-    position: relative;
-    overflow: hidden;
-}
 
-.quick-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: left 0.4s ease;
-}
 
-.quick-btn:hover::before {
-    left: 100%;
-}
-
-.quick-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(156, 39, 176, 0.4);
-    background: linear-gradient(45deg, #7b1fa2, #4a148c);
-}
-
-.quick-btn.active {
-    background: linear-gradient(45deg, #ff5722, #d84315);
-    border-color: #ff5722;
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 8px rgba(255, 87, 34, 0.4);
-}
-
-/* 费用显示优化 */
+/* 总金额显示优化 */
 .cost-display {
-    margin: 20px 0;
-    padding: 15px;
-    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-    border-radius: 12px;
-    border: 2px solid #ffb74d;
-    box-shadow: 0 3px 6px rgba(255, 183, 77, 0.2);
+    text-align: center;
+    margin: 15px 0;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 1px solid #ffeaa7;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #856404;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+}
+
+.cost-display span {
+    color: #d63384;
+    font-size: 18px;
 }
 
 .cost-item {
@@ -750,29 +779,52 @@ body {
     color: #d84315;
 }
 
-/* 操作按钮 */
-.action-buttons {
+/* 🔥 新的按钮布局：清除-机选-批量机选-确定 */
+.btn-confirm {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.btn-confirm:hover {
+    background: linear-gradient(135deg, #20c997, #17a2b8);
+}
+
+.random-bet-section {
+    background: #e8f5e8;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px; /* 🔥 减少底部间距 */
+}
+
+.random-controls {
     display: flex;
-    gap: 15px;
+    align-items: center;
+    gap: 12px;
     justify-content: center;
     flex-wrap: wrap;
-    margin-top: 20px;
+    /* 🔥 按钮顺序：清除-机选-随机数量-批量机选-确定投注 */
 }
 
 .btn {
-    padding: 15px 30px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 25px;
-    font-size: 1.1em;
+    border-radius: 18px;
+    font-size: 13px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
+    height: 36px;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
     transform-style: preserve-3d;
     background: linear-gradient(45deg, #3498db, #2980b9);
     color: white;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .btn::before {
@@ -791,12 +843,13 @@ body {
 }
 
 .btn:hover {
-    transform: translateY(-3px) rotateX(5deg);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn:active {
-    transform: translateY(-1px) rotateX(2deg);
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .btn.loading {
@@ -822,9 +875,17 @@ body {
     background: linear-gradient(45deg, #9b59b6, #8e44ad);
 }
 
+/* 清除按钮 */
 .btn-clear {
-    background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    color: white;
 }
+
+.btn-clear:hover {
+    background: linear-gradient(135deg, #5a6268, #495057);
+}
+
+/* 确认投注按钮样式（已合并到.btn-confirm中） */
 
 .btn-draw {
     background: linear-gradient(45deg, #e74c3c, #c0392b);
@@ -832,16 +893,507 @@ body {
 
 /* 投注单区域 */
 .tickets-area {
-    margin: 40px 0;
+    margin: 5px 0 40px 0; /* 🔥 减少上边距，让投注单区域紧挨机选区域 */
     padding: 20px;
     background: #f8f9fa;
     border-radius: 15px;
     border: 2px solid #e9ecef;
 }
 
+/* 🔥 中奖查询系统样式 */
+.check-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.check-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 15px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.check-header h2 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.check-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.check-actions .btn {
+    padding: 12px 24px;
+    font-size: 16px;
+}
+
+.btn-claim {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.btn-claim:hover {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+}
+
+/* 待开奖彩票区域 */
+.pending-tickets-section {
+    margin-bottom: 40px;
+}
+
+.pending-tickets-section h3 {
+    font-size: 22px;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding-left: 10px;
+    border-left: 4px solid #f39c12;
+}
+
+.pending-tickets-container {
+    background: #fff;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.pending-tickets-list {
+    max-height: 240px; /* 🔥 最多显示约3条记录 */
+    overflow-y: auto;
+    padding: 15px;
+}
+
+/* 待开奖彩票项 */
+.pending-ticket-item {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.pending-ticket-item:last-child {
+    margin-bottom: 0;
+}
+
+.pending-ticket-item:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pending-ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.pending-ticket-type {
+    font-weight: bold;
+    color: #495057;
+    background: #e9ecef;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.pending-ticket-period {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.pending-ticket-numbers {
+    margin: 12px 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.pending-ticket-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+/* 中奖彩票区域 */
+.winning-tickets-section h3 {
+    font-size: 22px;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding-left: 10px;
+    border-left: 4px solid #27ae60;
+}
+
+.winning-tickets-list {
+    background: #fff;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 15px;
+}
+
+/* 中奖查询页面容器 */
+.winning-tickets-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: calc(100vh - 200px);
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 1400px;
+    width: 100%;
+}
+
+/* 中奖彩票项 */
+.winning-ticket-item {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    border: 2px solid #28a745;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 1200px;
+    min-width: 600px;
+}
+
+.winning-ticket-item:last-child {
+    margin-bottom: 0;
+}
+
+.winning-ticket-item::before {
+    content: '🎉';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    opacity: 0.7;
+}
+
+.winning-ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(40, 167, 69, 0.2);
+}
+
+.winning-ticket-type {
+    font-weight: bold;
+    color: #155724;
+    background: #28a745;
+    color: white;
+    padding: 6px 15px;
+    border-radius: 25px;
+    font-size: 14px;
+}
+
+.winning-prize-info {
+    text-align: right;
+}
+
+.winning-prize-level {
+    font-weight: bold;
+    color: #d63384;
+    font-size: 16px;
+}
+
+.winning-prize-amount {
+    font-weight: bold;
+    color: #dc3545;
+    font-size: 18px;
+    margin-top: 5px;
+}
+
+.winning-ticket-numbers {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.winning-numbers-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.winning-number-ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.winning-number-ball.red-ball {
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+}
+
+.winning-number-ball.blue-ball {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+}
+
+.winning-number-ball.winning {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+    border: 2px solid #ffd700;
+}
+
+.winning-separator {
+    font-size: 18px;
+    color: #7f8c8d;
+    font-weight: bold;
+    margin: 0 6px;
+}
+
+.winning-amount {
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #e74c3c;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.winning-ticket-details {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(40, 167, 69, 0.2);
+}
+
+.winning-ticket-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #6c757d;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.winning-ticket-info span {
+    text-align: center;
+    padding: 8px;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.winning-amount-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(231, 76, 60, 0.05);
+    border-radius: 12px;
+    border: 2px solid rgba(231, 76, 60, 0.1);
+}
+
+.amount-label {
+    font-size: 16px;
+    color: #495057;
+    font-weight: 600;
+}
+
+.amount-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 2px solid rgba(231, 76, 60, 0.2);
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
+}
+
+.winning-ticket-count {
+    font-size: 14px;
+    color: #155724;
+}
+
+.winning-claim-status {
+    font-weight: bold;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.winning-claim-status.status-claimed {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.winning-claim-status.status-unclaimed {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.winning-claim-status.status-unknown {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* 自定义滚动条样式 */
+.pending-tickets-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.pending-tickets-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.pending-tickets-list::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    border-radius: 4px;
+}
+
+.pending-tickets-list::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+}
+
 .tickets-area h3 {
     margin-bottom: 20px;
     color: #2c3e50;
+    text-align: center;
+}
+
+/* 🔥 投注单容器限制显示3条记录并添加滚动 */
+.tickets-container {
+    max-height: 240px; /* 🔥 调整高度，大约容纳3条记录 */
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tickets-list {
+    padding: 10px;
+}
+
+/* 🔥 优化投注单项样式 */
+.ticket-item {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+    min-height: 60px; /* 🔥 设置最小高度确保一致性 */
+}
+
+.ticket-item:hover {
+    background: #f0f8ff;
+    border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+.ticket-item:last-child {
+    margin-bottom: 0;
+}
+
+/* 🔥 优化滚动条样式 */
+.tickets-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tickets-container::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin: 5px 0;
+}
+
+.tickets-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.tickets-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a6fd8, #6a42a0);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* 🔥 投注单头部样式 */
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.ticket-type {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.ticket-status {
+    color: #28a745;
+    font-size: 12px;
+}
+
+/* 🔥 投注单号码显示 */
+.ticket-numbers {
+    margin: 8px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* 🔥 投注单信息 */
+.ticket-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 8px;
+    border-top: 1px solid #e9ecef;
+    padding-top: 5px;
+}
+
+.ticket-info span {
+    flex: 1;
     text-align: center;
 }
 
@@ -897,7 +1449,7 @@ body {
     width: 100%;
     border-collapse: collapse;
     margin: 20px 0;
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
@@ -916,8 +1468,18 @@ body {
     font-weight: bold;
 }
 
+.prize-table tbody tr {
+    background: rgba(248, 249, 250, 0.8);
+}
+
+.prize-table tbody tr:nth-child(even) {
+    background: rgba(233, 236, 239, 0.6);
+}
+
+
+
 .prize-table tr:hover {
-    background: #f8f9fa;
+    background: rgba(102, 126, 234, 0.15) !important;
 }
 
 /* 历史记录 */
@@ -1087,11 +1649,170 @@ body {
     animation: float 6s ease-in-out infinite;
 }
 
+/* 🔥 转盘悬浮按钮样式 */
+.wheel-entrance {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    z-index: 1000;
+    opacity: 0.9;
+    transition: all 0.3s ease;
+}
+
+.wheel-entrance:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
+}
+
+.wheel-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.wheel-btn:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+    transform: translateY(-2px);
+}
+
+.wheel-btn:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 15px rgba(102, 126, 234, 0.4);
+}
+
+.wheel-icon {
+    font-size: 24px;
+    margin-bottom: 2px;
+}
+
+.wheel-text {
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1;
+    text-align: center;
+}
+
+/* 🔥 中奖查询响应式设计 */
+@media (max-width: 1200px) {
+    .winning-tickets-section {
+        max-width: 100%;
+        padding: 15px;
+    }
+    
+    .winning-ticket-item {
+        max-width: 100%;
+        min-width: auto;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .winning-tickets-section {
+        padding: 10px;
+    }
+    
+    .winning-ticket-item {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .winning-number-ball {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+    
+    .winning-numbers-display {
+        gap: 8px;
+    }
+    
+    .winning-ticket-info {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        font-size: 13px;
+    }
+    
+    .amount-value {
+        font-size: 18px;
+        padding: 6px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .winning-number-ball {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+    }
+    
+    .winning-numbers-display {
+        gap: 6px;
+    }
+    
+    .winning-ticket-info span {
+        padding: 6px;
+        font-size: 12px;
+    }
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
+    .wheel-entrance {
+        top: 15%;
+        right: 10px;
+    }
+    
+    .wheel-btn {
+        padding: 10px 8px;
+        max-width: 60px;
+    }
+    
+    .wheel-icon {
+        font-size: 20px;
+    }
+    
+    .wheel-text {
+        font-size: 8px;
+    }
+    
     .container {
+        max-width: calc(100% - 80px);
+        padding: 10px;
         margin: 0;
         border-radius: 0;
+    }
+    
+    /* 🔥 移动端投注单优化 */
+    .tickets-container {
+        max-height: 200px; /* 移动端显示高度稍小 */
+    }
+    
+    .ticket-item {
+        padding: 10px;
+        min-height: 50px;
+    }
+    
+    .ticket-info {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .ticket-info span {
+        text-align: left;
+        font-size: 10px;
     }
     
     .header h1 {
@@ -1121,30 +1842,38 @@ body {
         gap: 6px;
         max-width: 100%;
         padding: 10px;
+        margin: 15px auto 8px auto; /* 🔥 移动端也减少下边距 */
     }
     
     .blue-ball-grid {
         grid-template-columns: repeat(4, 1fr);
         gap: 8px;
         max-width: 100%;
+        margin: 15px auto 8px auto; /* 🔥 移动端也减少下边距 */
     }
     
     .front-ball-grid {
         grid-template-columns: repeat(5, 1fr);
         gap: 6px;
         max-width: 100%;
+        margin: 15px auto 8px auto; /* 🔥 移动端也减少下边距 */
     }
     
     .back-ball-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
         max-width: 100%;
+        margin: 15px auto 8px auto; /* 🔥 移动端也减少下边距 */
     }
     
     .ball {
         width: 40px;
         height: 40px;
         font-size: 0.9em;
+    }
+    
+    .selected-section {
+        grid-template-columns: 1fr;
     }
     
     .horizontal-display {
@@ -1171,25 +1900,64 @@ body {
     
     .quantity-controls {
         flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .quantity-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    #betQuantity {
+        width: 80px;
+        height: 36px;
+        font-size: 14px;
     }
     
     .quick-quantity {
-        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+        gap: 6px;
+        padding: 12px;
     }
     
     .quick-btn {
         padding: 6px 12px;
-        font-size: 0.9em;
+        font-size: 12px;
+        min-width: 60px;
+        height: 32px;
+        flex: 0 0 auto;
     }
     
-    .action-buttons {
+    .random-controls {
         flex-direction: column;
-        align-items: center;
+        gap: 10px;
+    }
+    
+    .random-quantity-selector {
+        width: 100%;
+        justify-content: center;
     }
     
     .btn {
         width: 100%;
-        max-width: 300px;
+        max-width: 200px;
+    }
+    
+    /* 🔥 移动端按钮布局优化 */
+    .btn-clear,
+    .btn-confirm {
+        margin: 5px 0;
+    }
+    
+    .custom-quantity {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    #customQuantity {
+        width: 120px;
     }
     
     .stats-grid {
@@ -1231,13 +1999,72 @@ body {
         align-self: center;
     }
     
-    .quick-quantity {
-        justify-content: center;
+    .check-actions {
+        flex-direction: column;
     }
     
-    .quick-btn {
+    /* 底部响应式优化 */
+    .anti-addiction-footer {
+        padding: 15px 0; /* 移动端进一步减少 */
+    }
+    
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 0 15px;
+    }
+    
+    /* 🔥 所有屏幕尺寸都强制一行显示 */
+    .responsible-gaming {
+        gap: 20px;
+        padding: 0 10px;
+    }
+    
+    .notice-item {
+        font-size: 12px;
+        padding: 5px 10px;
+        gap: 5px;
+    }
+    
+    .notice-item .icon {
+        font-size: 13px;
+    }
+    
+    .notice-item span:last-child {
+        font-size: 12px;
+    }
+    
+    .footer-links {
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .footer-link {
         padding: 6px 12px;
-        font-size: 0.8em;
+        font-size: 11px;
+    }
+
+}
+
+/* 🔥 超小屏幕也强制一行，使用更紧凑的样式 */
+@media (max-width: 320px) {
+    .responsible-gaming {
+        gap: 10px;
+        padding: 0 5px;
+    }
+    
+    .notice-item {
+        font-size: 10px;
+        padding: 3px 6px;
+        gap: 3px;
+    }
+    
+    .notice-item .icon {
+        font-size: 11px;
+    }
+    
+    .notice-item span:last-child {
+        font-size: 10px;
     }
 }
 
@@ -1246,6 +2073,70 @@ body {
         width: 35px;
         height: 35px;
         font-size: 0.8em;
+    }
+    
+    .quick-quantity {
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+        gap: 4px;
+        padding: 10px;
+    }
+    
+    .quick-btn {
+        padding: 5px 10px;
+        font-size: 11px;
+        min-width: 50px;
+        height: 28px;
+        flex: 0 0 auto;
+    }
+    
+    .bet-quantity-selector {
+        padding: 15px;
+    }
+    
+    .random-bet-section {
+        padding: 12px;
+    }
+    
+    /* 底部超小屏幕优化 */
+    .anti-addiction-footer {
+        padding: 12px 0;
+    }
+    
+    .warning-text h3 {
+        font-size: 18px;
+    }
+    
+    .warning-text p {
+        font-size: 13px;
+    }
+    
+    .responsible-gaming {
+        gap: 15px;
+        padding: 0 8px;
+    }
+    
+    .notice-item {
+        font-size: 11px;
+        padding: 4px 8px;
+        gap: 4px;
+    }
+    
+    .notice-item .icon {
+        font-size: 12px;
+    }
+    
+    .notice-item span:last-child {
+        font-size: 11px;
+    }
+    
+    .footer-links {
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .footer-link {
+        padding: 6px 12px;
+        font-size: 11px;
     }
 }
 
@@ -1457,12 +2348,12 @@ body {
 
 /* 大乐透开奖结果样式 */
 .history-ball.front-ball {
-    background: linear-gradient(45deg, #f39c12, #e67e22);
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
     color: white;
 }
 
 .history-ball.back-ball {
-    background: linear-gradient(45deg, #9b59b6, #8e44ad);
+    background: linear-gradient(45deg, #3498db, #2980b9);
     color: white;
 }
 
@@ -1484,15 +2375,16 @@ body {
     color: #7f8c8d;
 }
 
-/* 防沉迷footer样式 */
+/* 🔥 防沉迷区域为绝对底线，任何内容都不能超过 */
 .anti-addiction-footer {
     background: linear-gradient(135deg, #2c3e50, #34495e);
     color: white;
-    padding: 30px 0 20px;
-    margin-top: 50px;
-    border-top: 3px solid #e74c3c;
+    padding: 18px 0; /* 减少内边距 */
+    margin-top: 25px; /* 减少顶部间距 */
+    border-top: 2px solid #e74c3c; /* 减少边框厚度 */
     position: relative;
-    z-index: 1000;
+    z-index: 1000; /* 🔥 确保防沉迷信息始终在最上层 */
+    clear: both; /* 🔥 清除浮动确保在所有内容之下 */
 }
 
 .footer-content {
@@ -1502,86 +2394,99 @@ body {
     text-align: center;
 }
 
+/* 警告文本区域紧凑化 */
 .warning-text {
-    margin-bottom: 25px;
-    padding: 15px;
-    background: rgba(231, 76, 60, 0.1);
-    border: 2px solid #e74c3c;
-    border-radius: 10px;
-    display: inline-block;
+    margin-bottom: 12px; /* 减少底部间距 */
 }
 
 .warning-text h3 {
-    margin: 0 0 10px 0;
+    font-size: 20px; /* 稍微减小 */
+    margin-bottom: 6px; /* 减少间距 */
     color: #e74c3c;
-    font-size: 1.3em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     font-weight: bold;
 }
 
 .warning-text p {
+    font-size: 14px; /* 稍微减小 */
+    opacity: 0.9;
     margin: 0;
-    font-size: 1.1em;
-    color: #ecf0f1;
+    line-height: 1.3; /* 减少行高 */
 }
 
+/* 🔥 强制防沉迷提示一行显示 - 绝对不换行 */
 .responsible-gaming {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-    margin: 25px 0;
-    padding: 20px;
-    background: rgba(52, 73, 94, 0.3);
-    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    margin: 12px 0; /* 减少上下间距 */
+    flex-wrap: nowrap !important; /* 强制不换行 */
+    overflow-x: auto; /* 如果内容太长，允许水平滚动 */
+    padding: 0 15px;
+    white-space: nowrap;
 }
 
 .notice-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
+    gap: 6px;
+    font-size: 13px;
+    opacity: 0.9;
+    padding: 6px 12px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: 15px;
     transition: all 0.3s ease;
+    white-space: nowrap;
+    flex-shrink: 0; /* 防止被压缩 */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-width: fit-content;
 }
 
 .notice-item:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
 }
 
 .notice-item .icon {
-    font-size: 1.2em;
-    min-width: 25px;
+    font-size: 14px;
+    flex-shrink: 0;
 }
 
 .notice-item span:last-child {
-    font-size: 0.95em;
-    line-height: 1.4;
-}
-
-.footer-links {
-    margin: 20px 0;
-    padding: 15px;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.footer-links a {
-    color: #3498db;
-    text-decoration: none;
-    margin: 0 10px;
     font-weight: 500;
-    transition: color 0.3s ease;
+    font-size: 13px;
 }
 
-.footer-links a:hover {
-    color: #5dade2;
-    text-decoration: underline;
+/* 底部链接区域紧凑化 */
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px; /* 减少间距 */
+    margin-top: 12px; /* 减少顶部间距 */
+    flex-wrap: wrap;
 }
 
-.footer-links span {
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0 5px;
+.footer-link {
+    background: rgba(52, 152, 219, 0.8);
+    color: white;
+    border: none;
+    padding: 8px 16px; /* 减少内边距 */
+    border-radius: 20px;
+    font-size: 12px; /* 减小字体 */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.footer-link:hover {
+    background: rgba(41, 128, 185, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
 }
 
 .copyright {
@@ -1602,17 +2507,535 @@ body {
     font-style: italic;
 }
 
-/* 响应式设计 */
+/* 中奖查询界面美化 */
+.check-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 30px;
+    color: white;
+    margin: 20px 0;
+}
+
+.check-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.check-header h2 {
+    font-size: 28px;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.check-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.check-actions .btn {
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.check-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
+}
+
+.check-actions .btn-claim {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border-color: #28a745;
+}
+
+.pending-tickets-section,
+.winning-tickets-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 25px;
+    margin: 20px 0;
+    backdrop-filter: blur(10px);
+}
+
+.pending-tickets-section h3,
+.winning-tickets-section h3 {
+    color: #ffd700;
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* 庆祝动画 */
+@keyframes celebration {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes confettiFall {
+    0% {
+        transform: translateY(-10px) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* 🔥 严格控制开奖大厅高度，绝不超过防沉迷底线 */
+.draw-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 15px; /* 🔥 进一步减少内边距 */
+    margin: 10px auto 15px; /* 🔥 进一步减少上下外边距 */
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+    color: white;
+    position: relative;
+    overflow-y: auto; /* 🔥 允许内容滚动显示 */
+    text-align: center; /* 🔥 内容居中 */
+    max-width: 800px; /* 限制最大宽度 */
+    min-height: auto; /* 🔥 允许容器自适应高度 */
+    max-height: calc(100vh - 250px); /* 🔥 调整高度限制，确保奖金表完整显示 */
+    contain: layout style; /* 🔥 减少contain限制，允许内容正常显示 */
+}
+
+/* 🔥 移除可能导致溢出的装饰性伪元素，确保不超过防沉迷底线 */
+
+@keyframes shimmer {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(180deg); }
+}
+
+/* 开奖标题区域美化 */
+.draw-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+.draw-header h2 {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 彩票类型选择器美化 */
+.draw-type-selector {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.draw-type-btn {
+    padding: 12px 25px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.draw-type-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.draw-type-btn:hover::before {
+    left: 100%;
+}
+
+.draw-type-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+}
+
+.draw-type-btn.active {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.4);
+}
+
+/* 🔥 倒计时区域居中并压缩 */
+.countdown-section {
+    text-align: center;
+    margin: 15px auto 8px; /* 🔥 大幅减少上下间距 */
+    max-width: 600px;
+    padding: 15px; /* 🔥 减少内边距 */
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px; /* 🔥 减少圆角 */
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: visible !important;
+}
+
+.countdown-section h3 {
+    font-size: 18px; /* 🔥 减小字体 */
+    margin-bottom: 12px; /* 🔥 减少底部间距 */
+    color: #ffd700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.countdown-display {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px; /* 🔥 减少间隙 */
+        margin: 15px 0; /* 🔥 减少上下间距 */
+    }
+
+.countdown-item {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    padding: 10px; /* 🔥 减少内边距 */
+    border-radius: 12px; /* 🔥 减少圆角 */
+    min-width: 70px; /* 🔥 减少最小宽度 */
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* 🔥 减少阴影 */
+    position: relative;
+    overflow: hidden;
+}
+
+.countdown-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.countdown-number {
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.countdown-label {
+    font-size: 12px;
+    opacity: 0.8;
+    font-weight: 500;
+}
+
+/* 🔥 立即开奖按钮完全居中并压缩 */
+.draw-action {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    margin: 5px auto; /* 🔥 进一步减少上下外边距 */
+    width: 100%;
+    position: relative;
+    z-index: 10; /* 🔥 提高层级 */
+    overflow: visible !important;
+    padding: 2px 0; /* 🔥 进一步减少上下内边距 */
+    min-height: 40px; /* 🔥 进一步减少最小高度 */
+}
+
+/* 🔥 隐藏旁边的小字提示 */
+.next-draw-info,
+.draw-time-info,
+.countdown-text {
+    display: none !important;
+}
+
+.btn-draw {
+    padding: 20px 60px; /* 🔥 增加内边距，让红色区域更大 */
+    font-size: 20px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+    border-radius: 35px; /* 🔥 增大圆角，匹配更大的按钮 */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+    position: relative;
+    overflow: visible !important; /* 🔥 确保按钮效果可见 */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin: 0 auto; /* 🔥 强制居中 */
+    z-index: 11; /* 🔥 确保按钮在最上层 */
+    min-width: 220px; /* 🔥 增加最小宽度 */
+    white-space: nowrap; /* 🔥 防止文字换行 */
+    clip: unset !important;
+    clip-path: none !important;
+    mask: none !important;
+    transform-origin: center center !important;
+}
+
+.btn-draw::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s;
+    z-index: -1; /* 🔥 确保伪元素在按钮文字下方 */
+}
+
+.btn-draw:hover::before {
+    left: 100%;
+}
+
+/* 🔥 修复：简化hover效果，避免过度动画 */
+.btn-draw:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px); /* 减少移动距离 */
+    box-shadow: 0 8px 25px rgba(231, 76, 60, 0.5); /* 减少阴影强度 */
+    transition: all 0.2s ease; /* 加快过渡速度 */
+}
+
+.btn-draw:active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+/* 🔥 奖金设置区域美化并压缩 */
+.prize-table-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px; /* 🔥 减少圆角 */
+    padding: 15px; /* 🔥 减少内边距 */
+    margin: 8px 0 15px 0; /* 🔥 减少下边距 */
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.prize-table-section h3 {
+    color: #ffd700;
+    font-size: 18px; /* 🔥 减小字体 */
+    text-align: center;
+    margin-bottom: 12px; /* 🔥 减少底部间距 */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.prize-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.95); /* 🔥 增加背景不透明度 */
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.prize-table thead {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.prize-table th {
+    padding: 10px; /* 🔥 减少内边距 */
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px; /* 🔥 减小字体 */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.prize-table td {
+    padding: 8px; /* 🔥 减少内边距 */
+    text-align: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.98); /* 🔥 确保单元格背景足够不透明 */
+    color: #2c3e50; /* 🔥 使用深色文字确保可读性 */
+    font-weight: 500;
+    font-size: 13px; /* 🔥 减小字体 */
+}
+
+.prize-table tbody tr {
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.prize-table tbody tr:hover {
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.02);
+}
+
+.prize-table tbody tr:nth-child(even) {
+    background: rgba(248, 249, 250, 0.98); /* 🔥 斑马纹背景 */
+}
+
+.prize-table tbody tr:nth-child(even):hover {
+    background: rgba(102, 126, 234, 0.15);
+}
+
+/* 🔥 奖级列特殊样式 */
+.prize-table td:first-child {
+    font-weight: bold;
+    color: #e74c3c;
+    background: rgba(255, 255, 255, 1); /* 完全不透明 */
+}
+
+/* 🔥 奖金列特殊样式 */
+.prize-table td:last-child {
+    font-weight: bold;
+    color: #27ae60;
+    background: rgba(255, 255, 255, 1); /* 完全不透明 */
+    font-size: 15px;
+}
+
+/* 🔥 中奖条件列样式 */
+.prize-table td:nth-child(2) {
+    color: #34495e;
+    background: rgba(255, 255, 255, 0.98);
+    font-size: 14px;
+}
+
+/* 🔥 开奖历史区域美化并压缩 */
+.draw-history-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px; /* 🔥 减少圆角 */
+    padding: 15px; /* 🔥 减少内边距 */
+    margin: 15px 0 20px 0; /* 🔥 大幅减少上下间距 */
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.draw-history-section h3 {
+    color: #ffd700;
+    font-size: 18px; /* 🔥 减小字体 */
+    text-align: center;
+    margin-bottom: 12px; /* 🔥 减少底部间距 */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.draw-history {
+    max-height: 180px; /* 🔥 减少最大高度 */
+    overflow-y: auto;
+    padding: 8px; /* 🔥 减少内边距 */
+}
+
+.history-item {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px; /* 🔥 减少圆角 */
+    padding: 10px; /* 🔥 减少内边距 */
+    margin-bottom: 6px; /* 🔥 减少底部间距 */
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1); /* 🔥 减少阴影 */
+    transition: all 0.3s ease;
+    border-left: 3px solid #667eea; /* 🔥 减少边框厚度 */
+}
+
+.history-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* 🔥 开奖大厅滚动条样式 */
+.draw-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.draw-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.draw-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.5));
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.draw-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.7));
+}
+
+/* 🔥 响应式居中 */
 @media (max-width: 768px) {
-    .responsible-gaming {
-        grid-template-columns: 1fr;
+    .draw-container {
+        margin: 8px auto;
+        padding: 12px 8px 15px; /* 🔥 减少内边距，特别是底部 */
+        max-height: calc(100vh - 200px); /* 🔥 移动端调整高度限制 */
+        overflow-y: auto;
+    }
+    
+    .draw-header h2 {
+        font-size: 24px;
+    }
+    
+    .countdown-section {
+        padding: 12px; /* 🔥 移动端进一步减少内边距 */
+        margin: 10px 5px 5px 5px; /* 🔥 移动端大幅减少间距 */
+    }
+    
+    .countdown-display {
+        flex-wrap: wrap;
         gap: 10px;
     }
     
-    .notice-item {
+    .countdown-item {
+        min-width: 60px;
+        padding: 10px;
+    }
+    
+    .countdown-number {
+        font-size: 18px;
+    }
+    
+    .draw-action {
+        margin: 3px auto; /* 🔥 移动端进一步减少间距 */
+        padding: 2px 0; /* 🔥 移动端减少内边距 */
+    }
+    
+    .btn-draw {
+        padding: 18px 40px; /* 🔥 移动端也增加按钮内边距 */
+        font-size: 18px;
+        min-width: 200px; /* 🔥 增加移动端最小宽度 */
+        border-radius: 30px; /* 🔥 移动端圆角适配 */
+    }
+    
+    .draw-type-selector {
         flex-direction: column;
-        text-align: center;
-        gap: 5px;
+        gap: 10px;
+    }
+    
+    .prize-table {
+        font-size: 14px;
+    }
+    
+    .prize-table th,
+    .prize-table td {
+        padding: 10px 5px;
     }
     
     .footer-links {
@@ -1626,6 +3049,26 @@ body {
     
     .footer-links span {
         display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .draw-container {
+        margin: 5px auto;
+        padding: 8px 6px 12px; /* 🔥 大幅减少所有内边距 */
+        max-height: calc(100vh - 180px); /* 🔥 小屏幕设备调整高度限制 */
+        overflow-y: auto;
+    }
+    
+    .draw-action {
+        margin: 5px auto; /* 🔥 小屏幕减少间距 */
+        padding: 2px 0; /* 🔥 小屏幕减少内边距 */
+    }
+    
+    .btn-draw {
+        padding: 12px 25px;
+        font-size: 16px;
+        min-width: 160px;
     }
 }
 
@@ -1668,4 +3111,1232 @@ body {
     font-size: 1.5em;
     cursor: pointer;
     color: #7f8c8d;
+}
+
+/* 投注数量叠加动画 */
+.quantity-add-animation {
+    animation: quantityAdd 0.6s ease-out;
+    background: linear-gradient(45deg, #27ae60, #2ecc71) !important;
+    color: white !important;
+    transform: scale(1.05);
+}
+
+@keyframes quantityAdd {
+    0% {
+        transform: scale(1);
+        background: #3498db;
+    }
+    50% {
+        transform: scale(1.1);
+        background: #27ae60;
+        box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+    }
+    100% {
+        transform: scale(1.05);
+        background: #2ecc71;
+    }
+}
+
+/* 叠加反馈动画 */
+@keyframes quantityFeedback {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(-5px) scale(1.1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-25px) scale(0.9);
+    }
+}
+
+/* 🔥 快捷按钮统一样式优化 */
+.quick-btn {
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    min-width: 70px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.quick-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.4s ease;
+}
+
+.quick-btn:hover::before {
+    left: 100%;
+}
+
+.quick-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8, #6a42a0);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.quick-btn:active {
+    transform: translateY(0);
+    animation: buttonPress 0.2s ease;
+}
+
+.quick-btn.active {
+    background: linear-gradient(45deg, #ff5722, #d84315);
+    border-color: #ff5722;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 8px rgba(255, 87, 34, 0.4);
+}
+
+@keyframes buttonPress {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* 🔥 机选区域一行布局 */
+.random-bet-section {
+    background: rgba(76, 175, 80, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    margin: 20px 0;
+    border: 1px solid rgba(76, 175, 80, 0.1);
+}
+
+.random-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-random {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    border: none;
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+    height: 36px;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.btn-random:hover {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.random-quantity-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.random-quantity-selector label {
+    font-size: 13px;
+    color: #495057;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.random-quantity-select {
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: white;
+    font-size: 13px;
+    min-width: 70px;
+    height: 32px;
+}
+
+.btn-batch-random {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #ff5722, #e64a19);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    height: 32px;
+    min-width: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.btn-batch-random:hover {
+    background: linear-gradient(135deg, #e64a19, #d84315);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(255, 87, 34, 0.3);
+}
+
+/* 批量随机结果样式 */
+.batch-random-result {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.result-summary {
+    text-align: center;
+    font-size: 16px;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #e8f5e8;
+    border-radius: 8px;
+}
+
+.tickets-preview {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    background: #fafafa;
+    margin-bottom: 20px;
+}
+
+.ticket-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-family: 'Courier New', monospace;
+}
+
+.ticket-preview:last-child {
+    border-bottom: none;
+}
+
+.ticket-number {
+    font-weight: bold;
+    color: #7f8c8d;
+    min-width: 30px;
+}
+
+.red-numbers, .front-numbers {
+    color: #e74c3c;
+    font-weight: bold;
+    background: #ffeaea;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+
+.blue-numbers, .back-numbers {
+    color: #3498db;
+    font-weight: bold;
+    background: #eaf4ff;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.more-tickets {
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 10px;
+    border-top: 1px dashed #ccc;
+    margin-top: 10px;
+}
+
+.result-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* 🔥 添加动画关键帧 */
+@keyframes numberPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+    }
+    50% {
+        box-shadow: 0 8px 35px rgba(231, 76, 60, 0.8);
+    }
+}
+
+/* 🔥 修复：移除导致按钮疯狂跳动的hover动画 */
+/* .btn-draw:hover 的动画效果已移动到下方的hover规则中 */
+
+/* 🔥 修复：倒计时紧急状态（严格限制作用范围） */
+.countdown-section .countdown-display.countdown-urgent .countdown-item,
+.countdown-section #drawCountdown.countdown-urgent .countdown-item {
+    animation: urgentPulse 1s ease-in-out infinite;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+}
+
+/* 🔥 完全隔离按钮区域，防止任何动画干扰 */
+.draw-action {
+    isolation: isolate !important;
+    contain: layout style paint !important;
+    will-change: auto !important;
+    position: relative !important;
+    z-index: 100 !important;
+    overflow: visible !important;
+    animation: none !important;
+    transform: none !important;
+}
+
+.btn-draw {
+    isolation: isolate !important;
+    contain: layout style paint !important;
+    will-change: auto !important;
+    cursor: pointer !important;
+    animation: none !important;
+    transform: none !important;
+    position: relative !important;
+}
+
+/* 🔥 禁用按钮区域的所有继承动画和变换 */
+.draw-action,
+.draw-action *,
+.btn-draw,
+.btn-draw * {
+    animation: none !important;
+    transform: none !important;
+}
+
+/* 🔥 重写按钮hover效果，确保稳定性 */
+.btn-draw:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226) !important;
+    box-shadow: 0 8px 25px rgba(231, 76, 60, 0.5) !important;
+    transform: none !important; /* 完全禁用变换 */
+    transition: background 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.btn-draw:active {
+    background: linear-gradient(135deg, #a93226, #922b21) !important;
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4) !important;
+    transform: none !important; /* 完全禁用变换 */
+}
+
+/* 🔥 确保倒计时紧急状态绝不影响按钮 */
+.countdown-urgent ~ .draw-action,
+.countdown-urgent + .draw-action,
+.countdown-section.countdown-urgent ~ .draw-action {
+    animation: none !important;
+    transform: none !important;
+}
+
+/* 🔥 防止级联样式污染 */
+.countdown-section {
+    isolation: isolate !important;
+    contain: layout style !important;
+}
+
+.countdown-section * {
+    will-change: auto !important;
+}
+
+@keyframes urgentPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* 🔥 修复：添加缺失的紧急闪烁动画 */
+@keyframes urgentBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* 🔥 自定义数量区域优化 */
+.custom-quantity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+    margin: 18px 0; /* 向下移动一点 */
+    padding: 15px 20px;
+    background: rgba(0, 123, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 123, 255, 0.1);
+    position: relative;
+}
+
+.custom-quantity label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+    white-space: nowrap;
+    margin-bottom: 0; /* 确保与输入框对齐 */
+    line-height: 1;
+    display: flex;
+    align-items: center;
+}
+
+/* 🔥 输入框尺寸优化 - 短一点，宽一点，能输入5位数字 */
+#customQuantity {
+    width: 100px; /* 缩短宽度，适合5位数字 */
+    height: 38px; /* 稍微增加高度，更宽一点 */
+    padding: 8px 12px;
+    border: 2px solid #ced4da;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    outline: none;
+    transition: all 0.3s ease;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#customQuantity:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    background: #fff;
+}
+
+#customQuantity:hover {
+    border-color: #80bdff;
+}
+
+/* 设置按钮优化 */
+.custom-quantity .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    height: 38px; /* 与输入框高度一致 */
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
+}
+
+.custom-quantity .btn:hover {
+    background: linear-gradient(135deg, #218838, #1e7e34);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.custom-quantity .btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+/* 🔥 确保所有元素垂直对齐 */
+.custom-quantity > * {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+/* 输入框占位符样式 */
+#customQuantity::placeholder {
+    color: #6c757d;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* 输入框数字限制提示 */
+.custom-quantity::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 20px;
+    background: rgba(0, 123, 255, 0.2);
+    border-radius: 1px;
+}
+
+/* 🔥 数字输入验证样式 */
+#customQuantity.valid {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+#customQuantity.invalid {
+    border-color: #dc3545;
+    background: #fff5f5;
+    animation: shake 0.3s ease-in-out;
+}
+
+/* 输入框内容样式 */
+#customQuantity {
+    /* 限制只能输入数字 */
+    -moz-appearance: textfield;
+}
+
+#customQuantity::-webkit-outer-spin-button,
+#customQuantity::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* 开奖动画CSS */
+@keyframes machineRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes progressFill {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+
+@keyframes ballBounce {
+    from { transform: translateY(0px); }
+    to { transform: translateY(-10px); }
+}
+
+/* 开奖历史错误样式 */
+.error-text {
+    color: #e74c3c;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.history-item.error {
+    background: #ffeaea;
+    border-left: 4px solid #e74c3c;
+    color: #e74c3c;
+    text-align: center;
+    padding: 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    /* action-buttons 已移除，按钮已集成到机选区域 */
+    
+    .custom-quantity {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+        padding: 15px;
+    }
+    
+    .custom-quantity label {
+        margin-bottom: 5px;
+    }
+    
+    /* 🔥 中奖查询系统响应式 */
+    .check-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .check-header h2 {
+        font-size: 24px;
+    }
+    
+    .check-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .pending-tickets-list {
+        max-height: 300px; /* 移动端允许更多显示空间 */
+    }
+    
+    .pending-ticket-header,
+    .pending-ticket-info {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    .winning-ticket-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .winning-ticket-details {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .winning-prize-info {
+        text-align: center;
+    }
+    
+    #customQuantity {
+        width: 120px;
+        margin: 0 auto;
+    }
+    
+    .custom-quantity .btn {
+        width: 120px;
+        margin: 0 auto;
+    }
+    
+    .tickets-container {
+        max-height: 250px;
+    }
+    
+    .random-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .random-quantity-selector {
+        justify-content: center;
+    }
+    
+    .ticket-preview {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}
+
+/* 🔥 确保按钮在所有情况下都居中 */
+.draw-hall .draw-action,
+#drawHall .draw-action,
+.lottery-draw .draw-action {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    contain: none !important;
+    isolation: auto !important;
+}
+
+.draw-hall .btn-draw,
+#drawHall .btn-draw,
+.lottery-draw .btn-draw {
+    margin: 0 auto !important;
+    display: block !important;
+}
+
+/* 🔥 修复可能的父容器问题 */
+.draw-hall,
+#drawHall,
+.lottery-draw {
+    overflow: visible !important;
+    position: relative;
+    padding-bottom: 50px; /* 🔥 确保底部有足够空间 */
+}
+
+/* 🔥 确保主容器不裁剪内容 */
+body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.main-container,
+.container,
+.content {
+    overflow: visible !important;
+    position: relative;
+}
+
+@media (max-width: 480px) {
+    .countdown-section {
+        padding: 15px;
+    }
+    
+    .countdown-item {
+        min-width: 50px;
+        padding: 8px;
+    }
+    
+    .countdown-number {
+        font-size: 16px;
+    }
+    
+    .countdown-label {
+        font-size: 10px;
+    }
+    
+    .prize-table {
+        font-size: 12px;
+    }
+    
+    .custom-quantity {
+        margin: 15px 0;
+        padding: 12px;
+    }
+    
+    #customQuantity {
+        width: 100px;
+        height: 36px;
+        font-size: 13px;
+    }
+    
+    .custom-quantity .btn {
+        height: 36px;
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}
+
+/* 🎉 庆祝动画样式 */
+.celebration-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* 撒花动画 */
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #f39c12;
+    animation: confetti-fall 3s linear infinite;
+}
+
+.confetti:nth-child(odd) {
+    background: #e74c3c;
+    width: 8px;
+    height: 8px;
+    animation-duration: 2.5s;
+}
+
+.confetti:nth-child(3n) {
+    background: #3498db;
+    width: 12px;
+    height: 4px;
+    border-radius: 2px;
+    animation-duration: 3.5s;
+}
+
+.confetti:nth-child(4n) {
+    background: #2ecc71;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation-duration: 2.8s;
+}
+
+.confetti:nth-child(5n) {
+    background: #9b59b6;
+    width: 8px;
+    height: 12px;
+    animation-duration: 3.2s;
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* 鞭炮效果 */
+.firework {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    animation: firework-explosion 1s ease-out forwards;
+}
+
+.firework.red {
+    background: radial-gradient(circle, #ff6b6b, #e74c3c);
+    box-shadow: 0 0 10px #e74c3c;
+}
+
+.firework.blue {
+    background: radial-gradient(circle, #4ecdc4, #3498db);
+    box-shadow: 0 0 10px #3498db;
+}
+
+.firework.gold {
+    background: radial-gradient(circle, #ffd93d, #f39c12);
+    box-shadow: 0 0 10px #f39c12;
+}
+
+.firework.green {
+    background: radial-gradient(circle, #6bcf7f, #2ecc71);
+    box-shadow: 0 0 10px #2ecc71;
+}
+
+.firework.purple {
+    background: radial-gradient(circle, #a8e6cf, #9b59b6);
+    box-shadow: 0 0 10px #9b59b6;
+}
+
+@keyframes firework-explosion {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(20);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(35);
+        opacity: 0;
+    }
+}
+
+/* 大奖文字动画 */
+.big-win-text {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4rem;
+    font-weight: bold;
+    color: #f39c12;
+    text-shadow: 
+        0 0 10px #f39c12,
+        0 0 20px #e74c3c,
+        0 0 30px #e74c3c,
+        0 0 40px #e74c3c;
+    z-index: 10000;
+    animation: big-win-pulse 1s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes big-win-pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        text-shadow: 
+            0 0 10px #f39c12,
+            0 0 20px #e74c3c,
+            0 0 30px #e74c3c,
+            0 0 40px #e74c3c;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.1);
+        text-shadow: 
+            0 0 20px #f39c12,
+            0 0 30px #e74c3c,
+            0 0 40px #e74c3c,
+            0 0 50px #e74c3c,
+            0 0 60px #f39c12;
+    }
+}
+
+/* 转盘大奖特效 */
+.wheel-jackpot-effect {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.8), rgba(255, 165, 0, 0.4), transparent);
+    animation: wheel-jackpot-glow 2s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes wheel-jackpot-glow {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+}
+
+/* 金币雨效果 */
+.coin {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    border-radius: 50%;
+    border: 2px solid #f39c12;
+    animation: coin-fall 2s linear infinite;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+}
+
+.coin::before {
+    content: '¥';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    font-weight: bold;
+    color: #f39c12;
+}
+
+@keyframes coin-fall {
+    0% {
+        transform: translateY(-100vh) rotateY(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotateY(1080deg);
+        opacity: 0;
+    }
+}
+
+/* 彩虹庆祝条 */
+.celebration-banner {
+    position: fixed;
+    top: 20%;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: linear-gradient(45deg, 
+        #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #5f27cd);
+    background-size: 200% 200%;
+    animation: rainbow-move 2s ease-in-out infinite;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    pointer-events: none;
+}
+
+@keyframes rainbow-move {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 移动端庆祝效果调整 */
+@media (max-width: 768px) {
+    .big-win-text {
+        font-size: 2.5rem;
+    }
+    
+    .celebration-banner {
+        font-size: 1.5rem;
+        height: 40px;
+    }
+    
+    .coin {
+        width: 15px;
+        height: 15px;
+    }
+    
+    .coin::before {
+        font-size: 8px;
+    }
+}
+
+/* 🔥 开奖历史页面样式 */
+.history-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 20px;
+    margin: 15px auto 5px;
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+    color: white;
+    position: relative;
+    max-width: 800px;
+    max-height: calc(100vh - 200px);
+    min-height: 60vh;
+    overflow-y: auto;
+}
+
+.history-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.history-header h2 {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.history-type-selector {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.history-type-btn {
+    padding: 12px 25px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.history-type-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
+}
+
+.history-type-btn.active {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
+}
+
+.history-content {
+    margin-top: 20px;
+}
+
+.history-list {
+    display: none;
+}
+
+.history-list.active {
+    display: block;
+}
+
+.history-item {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border-left: 4px solid #667eea;
+    color: #2c3e50;
+}
+
+.history-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-weight: bold;
+}
+
+.history-date {
+    font-size: 14px;
+    color: #7f8c8d;
+}
+
+.history-period {
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+.history-numbers {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+}
+
+.history-ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.history-ball.red-ball {
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+}
+
+.history-ball.blue-ball {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+}
+
+.history-separator {
+    font-size: 20px;
+    color: #7f8c8d;
+    font-weight: bold;
+    margin: 0 8px;
+}
+
+/* 🔥 历史记录滚动条样式 */
+.history-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.history-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.5));
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.history-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.7));
+}
+
+/* 🔥 转盘历史记录样式 */
+.wheel-history-list .history-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-left: 3px solid #4ecdc4;
+    transition: all 0.3s ease;
+}
+
+.wheel-history-list .history-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(3px);
+}
+
+.wheel-history-list .history-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.wheel-history-list .history-time {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+}
+
+.wheel-history-list .history-type {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.wheel-history-list .history-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+}
+
+.wheel-history-list .history-transaction {
+    color: rgba(255, 255, 255, 0.9);
+    font-family: monospace;
+}
+
+.wheel-history-list .history-profit {
+    font-weight: bold;
+    font-family: monospace;
+}
+
+.wheel-history-list .profit-positive {
+    color: #2ecc71;
+}
+
+.wheel-history-list .profit-negative {
+    color: #e74c3c;
+}
+
+.wheel-history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.wheel-history-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.wheel-history-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.wheel-history-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
 }

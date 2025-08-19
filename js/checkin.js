@@ -1,10 +1,3 @@
-/**
- * 签到功能模块
- * 版本: 2.0.0 - 完全重构版
- * 作者: 彩票系统开发团队
- * 功能: 每日签到、余额奖励、签到记录管理、补签功能、转出功能
- */
-
 // 签到功能命名空间
 const CheckinModule = {
     // 配置选项
@@ -122,24 +115,29 @@ const CheckinModule = {
     // 修复：更新账户余额
     updateAccountBalance(reward) {
         try {
-            // 确保 window.accountBalance 是数字类型
+            // 🔥 确保window.accountBalance是数字类型
             if (typeof window.accountBalance === 'undefined') {
-                window.accountBalance = 1000; // 初始余额
+                window.accountBalance = 1000;
             }
             
-            // 如果是DOM元素，获取其数值
-            if (typeof window.accountBalance === 'object') {
-                const balanceText = window.accountBalance.textContent || window.accountBalance.innerText || '1000';
-                window.accountBalance = parseFloat(balanceText.replace(/[^\d.-]/g, '')) || 1000;
+            if (typeof window.accountBalance !== 'number') {
+                window.accountBalance = parseFloat(window.accountBalance) || 1000;
             }
             
-            // 确保是数字类型
-            window.accountBalance = parseFloat(window.accountBalance) || 1000;
+            // 🔥 同步到主系统变量
+            if (typeof window.accountBalance !== 'undefined') {
+                window.accountBalance += reward;
+                // 确保主系统变量同步
+                if (typeof accountBalance !== 'undefined') {
+                    accountBalance = window.accountBalance;
+                }
+            }
             
-            // 添加奖励
-            window.accountBalance += reward;
+            console.log(`💰 签到更新余额: +¥${reward}, 当前余额: ¥${window.accountBalance}`);
             
-            console.log(`💰 钱包余额更新: +¥${reward}, 当前余额: ¥${window.accountBalance}`);
+            // 🔥 立即保存到localStorage
+            localStorage.setItem('globalAccountBalance', window.accountBalance.toString());
+            localStorage.setItem('lotteryAccountBalance', window.accountBalance.toString());
             
             // 调用主系统更新函数
             if (typeof updateAccountDisplay === 'function') {
@@ -151,8 +149,11 @@ const CheckinModule = {
             }
             
             this.forceUpdateBalanceDisplay();
+            
+            return true;
         } catch (error) {
-            console.error('❌ 更新账户余额失败:', error);
+            console.error('❌ 签到更新账户余额失败:', error);
+            return false;
         }
     },
     
@@ -532,6 +533,31 @@ const CheckinModule = {
                 dialog.remove();
             }
         }
+    },
+    
+    // 🔥 新增：切换签到标签页
+    switchTab: function(tabName) {
+        // 更新标签按钮状态
+        const tabs = document.querySelectorAll('.checkin-tab');
+        tabs.forEach(tab => {
+            if (tab.getAttribute('data-tab') === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+        
+        // 更新面板显示
+        const panels = document.querySelectorAll('.checkin-panel');
+        panels.forEach(panel => {
+            if (panel.id === tabName + 'Panel') {
+                panel.classList.add('active');
+            } else {
+                panel.classList.remove('active');
+            }
+        });
+        
+        console.log(`🔄 切换到${tabName === 'signin' ? '签到' : '补签'}页面`);
     },
     
     // 检查签到状态
@@ -1418,5 +1444,12 @@ if (typeof window !== 'undefined') {
         }
     };
 }
+
+// 在文件末尾添加全局函数
+window.switchCheckinTab = function(tabName) {
+    if (CheckinModule && typeof CheckinModule.switchTab === 'function') {
+        CheckinModule.switchTab(tabName);
+    }
+};
 
 console.log('🎯 签到模块加载完成 v2.0.0 - 完全重构版');

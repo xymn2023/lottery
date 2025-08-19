@@ -67,11 +67,15 @@ function initializeBalls() {
 }
 
 // 创建球体网格
+// 🚀 性能优化：使用DocumentFragment批量创建球体
 function createBallGrid(containerId, count, ballClass, clickHandler) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
     container.innerHTML = '';
+    
+    // 使用DocumentFragment减少DOM重排
+    const fragment = document.createDocumentFragment();
     
     for (let i = 1; i <= count; i++) {
         const ball = document.createElement('div');
@@ -79,8 +83,11 @@ function createBallGrid(containerId, count, ballClass, clickHandler) {
         ball.textContent = i.toString().padStart(2, '0');
         ball.dataset.number = i;
         ball.onclick = () => clickHandler(ball, i);
-        container.appendChild(ball);
+        fragment.appendChild(ball);
     }
+    
+    // 一次性添加所有球体，减少重排次数
+    container.appendChild(fragment);
 }
 
 // 选择球体
@@ -268,19 +275,29 @@ function clearSelection() {
 }
 
 // 机选号码 - 增强版
-function randomSelect() {
-    const randomBtn = document.querySelector('.btn-random');
-    if (randomBtn) {
-        randomBtn.disabled = true;
-        randomBtn.textContent = '🎰 机选中...';
-    }
-    
-    playRandomSelectSound();
-    
-    if (currentLotteryType === 'doubleColor') {
-        animatedRandomSelectDoubleColorEnhanced();
+function randomSelect(quantity = 1) {
+    if (quantity === 1) {
+        // 原有的单注随机逻辑
+        const randomBtn = document.querySelector('.btn-random');
+        if (randomBtn) {
+            randomBtn.disabled = true;
+            randomBtn.textContent = '🎰 机选中...';
+        }
+        
+        playRandomSelectSound();
+        
+        if (currentLotteryType === 'doubleColor') {
+            animatedRandomSelectDoubleColorEnhanced();
+        } else {
+            animatedRandomSelectDaletouEnhanced();
+        }
     } else {
-        animatedRandomSelectDaletouEnhanced();
+        // 调用批量随机
+        const quantitySelect = document.getElementById('randomQuantity');
+        if (quantitySelect) {
+            quantitySelect.value = quantity;
+        }
+        batchRandomSelect();
     }
 }
 
@@ -567,6 +584,314 @@ function finishRandomSelect() {
     statusIndicator.show('🎉 机选完成！', 'success', 2000);
 }
 
+// 🔥 新增：批量随机选择函数
+function batchRandomSelect() {
+    const quantitySelect = document.getElementById('randomQuantity');
+    const quantity = parseInt(quantitySelect?.value) || 1;
+    
+
+    
+    // 清除当前选择
+    clearSelection();
+    
+    // 生成多注不同的随机号码
+    const generatedTickets = [];
+    
+    for (let i = 0; i < quantity; i++) {
+        let attempts = 0;
+        let newTicket;
+        
+        // 确保生成不重复的号码组合
+        do {
+            newTicket = generateSingleRandomTicket();
+            attempts++;
+        } while (isDuplicateTicket(newTicket, generatedTickets) && attempts < 100);
+        
+        if (attempts < 100) {
+            generatedTickets.push(newTicket);
+        } else {
+
+        }
+    }
+    
+    // 设置投注数量
+    setQuantity(generatedTickets.length);
+    
+    // 显示生成结果
+    showBatchRandomResult(generatedTickets);
+    
+
+}
+
+// 🔥 新增：生成单注随机票据
+function generateSingleRandomTicket() {
+    if (currentLotteryType === 'doubleColor') {
+        return generateDoubleColorTicket();
+    } else {
+        return generateDaletouTicket();
+    }
+}
+
+// 🔥 新增：生成双色球随机票据
+function generateDoubleColorTicket() {
+    // 生成6个红球（1-33）
+    const redNumbers = [];
+    while (redNumbers.length < 6) {
+        const num = Math.floor(Math.random() * 33) + 1;
+        if (!redNumbers.includes(num)) {
+            redNumbers.push(num);
+        }
+    }
+    redNumbers.sort((a, b) => a - b);
+    
+    // 生成1个蓝球（1-16）
+    const blueNumber = Math.floor(Math.random() * 16) + 1;
+    
+    return {
+        type: 'doubleColor',
+        red: redNumbers,
+        blue: [blueNumber],
+        numbers: redNumbers,
+        blueNumber: blueNumber
+    };
+}
+
+// 🔥 新增：生成大乐透随机票据
+function generateDaletouTicket() {
+    // 生成5个前区号码（1-35）
+    const frontNumbers = [];
+    while (frontNumbers.length < 5) {
+        const num = Math.floor(Math.random() * 35) + 1;
+        if (!frontNumbers.includes(num)) {
+            frontNumbers.push(num);
+        }
+    }
+    frontNumbers.sort((a, b) => a - b);
+    
+    // 生成2个后区号码（1-12）
+    const backNumbers = [];
+    while (backNumbers.length < 2) {
+        const num = Math.floor(Math.random() * 12) + 1;
+        if (!backNumbers.includes(num)) {
+            backNumbers.push(num);
+        }
+    }
+    backNumbers.sort((a, b) => a - b);
+    
+    return {
+        type: 'daletou',
+        front: frontNumbers,
+        back: backNumbers,
+        frontNumbers: frontNumbers,
+        backNumbers: backNumbers
+    };
+}
+
+// 🔥 新增：检查是否为重复票据
+function isDuplicateTicket(newTicket, existingTickets) {
+    return existingTickets.some(ticket => {
+        if (ticket.type !== newTicket.type) return false;
+        
+        if (newTicket.type === 'doubleColor') {
+            return arraysEqual(ticket.red, newTicket.red) && 
+                   arraysEqual(ticket.blue, newTicket.blue);
+        } else {
+            return arraysEqual(ticket.front, newTicket.front) && 
+                   arraysEqual(ticket.back, newTicket.back);
+        }
+    });
+}
+
+// 🔥 新增：数组比较函数
+function arraysEqual(arr1, arr2) {
+    if (arr1.length !== arr2.length) return false;
+    return arr1.every((val, index) => val === arr2[index]);
+}
+
+// 🔥 新增：显示批量随机结果
+function showBatchRandomResult(tickets) {
+    if (tickets.length === 0) {
+        showCenterModal('⚠️ 批量机选', '生成失败，请重试', 'warning');
+        return;
+    }
+    
+    // 🔥 将tickets数据存储到全局变量，避免HTML传递问题
+    window.currentBatchTickets = tickets;
+    
+    let resultHtml = `
+        <div class="batch-random-result">
+            <h3>🎲 批量机选结果</h3>
+            <p class="result-summary">共生成 <strong>${tickets.length}</strong> 注不同号码</p>
+            <div class="tickets-preview">
+    `;
+    
+    tickets.slice(0, 10).forEach((ticket, index) => {
+        if (ticket.type === 'doubleColor') {
+            resultHtml += `
+                <div class="ticket-preview">
+                    <span class="ticket-number">${index + 1}.</span>
+                    <span class="red-numbers">${ticket.red.join(' ')}</span>
+                    <span class="blue-numbers">${ticket.blue.join(' ')}</span>
+                </div>
+            `;
+        } else {
+            resultHtml += `
+                <div class="ticket-preview">
+                    <span class="ticket-number">${index + 1}.</span>
+                    <span class="front-numbers">${ticket.front.join(' ')}</span>
+                    <span class="back-numbers">${ticket.back.join(' ')}</span>
+                </div>
+            `;
+        }
+    });
+    
+    if (tickets.length > 10) {
+        resultHtml += `<div class="more-tickets">... 还有 ${tickets.length - 10} 注</div>`;
+    }
+    
+    resultHtml += `
+            </div>
+            <div class="result-actions">
+                <button class="btn btn-primary" onclick="confirmCurrentBatchTickets(); closeCenterModal()">✅ 确认投注</button>
+                <button class="btn btn-secondary" onclick="closeCenterModal()">❌ 重新选择</button>
+            </div>
+        </div>
+    `;
+    
+    showCenterModal('🎲 批量机选结果', resultHtml, 'info');
+}
+
+// 🔥 新增：确认当前批量票据的包装函数
+function confirmCurrentBatchTickets() {
+    if (window.currentBatchTickets && Array.isArray(window.currentBatchTickets)) {
+        const success = confirmBatchTickets(window.currentBatchTickets);
+        if (success) {
+            // 清除临时数据
+            window.currentBatchTickets = null;
+        }
+        return success;
+    } else {
+        showCenterModal('❌ 错误', '票据数据丢失，请重新生成', 'error');
+        return false;
+    }
+}
+
+// 🔥 新增：处理批量投注确认（避免JSON传递问题）
+function processBatchConfirmation() {
+    if (window.currentBatchTickets && Array.isArray(window.currentBatchTickets)) {
+        const success = confirmBatchTickets(window.currentBatchTickets);
+        if (success) {
+            // 清除临时数据
+            window.currentBatchTickets = null;
+        }
+        return success;
+    } else {
+        showCenterModal('❌ 错误', '票据数据丢失，请重新生成', 'error');
+        return false;
+    }
+}
+
+// 🔥 新增：确认批量投注
+function confirmBatchTickets(tickets) {
+    try {
+
+        
+        // 确保tickets是数组
+        if (!Array.isArray(tickets) || tickets.length === 0) {
+            showCenterModal('❌ 错误', '票据数据无效，请重新生成', 'error');
+            return false;
+        }
+        
+        // 计算总费用
+        const totalCost = tickets.length * ticketPrice;
+
+        
+        // 检查余额
+        if (accountBalance < totalCost) {
+            showCenterModal('💰 余额不足', `需要¥${totalCost}，当前余额¥${accountBalance}`, 'error');
+            return false;
+        }
+        
+        // 扣除费用
+        const oldBalance = accountBalance;
+        accountBalance -= totalCost;
+        window.accountBalance = accountBalance; // 确保全局变量同步
+        
+
+        
+        // 添加到用户票据
+        let successCount = 0;
+        tickets.forEach((ticket, index) => {
+            try {
+                const userTicket = {
+                    id: 'batch_ticket_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    lotteryType: ticket.type,
+                    type: ticket.type,
+                    period: getCurrentPeriod(ticket.type),
+                    purchaseTime: new Date().toISOString(),
+                    cost: ticketPrice,
+                    status: 'waiting',
+                    batchId: 'batch_' + Date.now() // 批量标识
+                };
+                
+                if (ticket.type === 'doubleColor') {
+                    userTicket.numbers = ticket.red;
+                    userTicket.red = ticket.red;
+                    userTicket.blueNumber = ticket.blue[0];
+                    userTicket.blue = ticket.blue[0];
+                } else {
+                    userTicket.frontNumbers = ticket.front;
+                    userTicket.front = ticket.front;
+                    userTicket.backNumbers = ticket.back;
+                    userTicket.back = ticket.back;
+                }
+                
+                userTickets.push(userTicket);
+                successCount++;
+
+            } catch (error) {
+
+            }
+        });
+        
+        // 更新统计
+        stats.totalTickets += successCount;
+        stats.totalSpent += totalCost;
+        
+
+        
+        // 🔥 立即显示成功提示，提升用户体验
+        showCenterModal('✅ 投注成功', 
+            `批量投注 ${successCount} 注成功！\n总费用：¥${totalCost}\n剩余余额：¥${accountBalance}`, 
+            'success');
+        
+        // 立即更新账户界面
+        updateAccountDisplay();
+        
+        // 🔥 异步处理其他更新，避免阻塞
+        setTimeout(() => {
+            updateStatsDisplay();
+            updateTicketsList();
+            
+            // 延迟保存数据
+            setTimeout(() => {
+                saveData();
+            }, 100);
+        }, 50);
+        
+        // 清除选择
+        clearSelection();
+        
+
+        return true;
+        
+    } catch (error) {
+
+        showCenterModal('❌ 投注失败', '处理过程中发生错误，请重试', 'error');
+        return false;
+    }
+}
+
 // 添加机选特效样式
 function addRandomSelectStyles() {
     if (document.getElementById('randomSelectStyles')) return;
@@ -653,20 +978,349 @@ function addRandomSelectStyles() {
     document.head.appendChild(style);
 }
 
-// 优化的数量控制函数
+// 🔥 重写数量控制函数，确保无上限
 function validateAndUpdateQuantity(value) {
     const numValue = parseInt(value);
     if (isNaN(numValue) || numValue < 1) {
+        // 只检查最小值1注
         document.getElementById('betQuantity').value = 1;
         betQuantity = 1;
-    } else if (numValue > 20) {
-        document.getElementById('betQuantity').value = 20;
-        betQuantity = 20;
-        showQuantityAlert('最多投注20注！');
+        showQuantityAlert('最少投注1注！');
     } else {
+        // 🔥 完全无上限：接受任何大于等于1的数值
         betQuantity = numValue;
+
     }
     updateCostDisplay();
+}
+
+// 🔥 新增：设置自定义数量函数
+function setCustomQuantity() {
+    const customInput = document.getElementById('customQuantity');
+    const customValue = parseInt(customInput.value);
+    
+    if (isNaN(customValue) || customValue < 1) {
+        showQuantityAlert('请输入有效的投注数量（最少1注）！');
+        customInput.focus();
+        return;
+    }
+    
+    setQuantity(customValue);
+    customInput.value = ''; // 清空输入框
+    
+    // 显示成功提示
+    showQuantityAlert(`✅ 已设置投注数量为 ${customValue} 注`);
+
+}
+
+// 🔥 新增：批量机选功能（备用入口）
+function showBatchRandomDialog() {
+    // 显示批量机选对话框
+    showBatchRandomModal();
+}
+
+// 🔥 新增：显示批量机选模态框
+function showBatchRandomModal() {
+    const modal = document.createElement('div');
+    modal.className = 'center-modal';
+    modal.innerHTML = `
+        <div class="center-modal-overlay" onclick="closeCenterModal()"></div>
+        <div class="center-modal-content batch-random">
+            <div class="modal-header">
+                <h3>🎲 批量机选</h3>
+                <button class="close-btn" onclick="closeCenterModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="batch-options">
+                    <div class="option-group">
+                        <label>机选数量：</label>
+                        <div class="quantity-input-group">
+                            <input type="number" id="batchQuantity" min="1" value="5" placeholder="输入机选数量">
+                            <span class="unit">注</span>
+                        </div>
+                    </div>
+                    
+                    <div class="option-group">
+                        <label>彩票类型：</label>
+                        <div class="type-selector">
+                            <label class="radio-option">
+                                <input type="radio" name="batchType" value="doubleColor" checked>
+                                <span>🔴 双色球</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="batchType" value="daletou">
+                                <span>🔵 大乐透</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-batch-options">
+                        <h4>快速选择：</h4>
+                        <div class="quick-batch-buttons">
+                            <button class="quick-batch-btn" onclick="setBatchQuantity(10)">10注</button>
+                            <button class="quick-batch-btn" onclick="setBatchQuantity(20)">20注</button>
+                            <button class="quick-batch-btn" onclick="setBatchQuantity(50)">50注</button>
+                            <button class="quick-batch-btn" onclick="setBatchQuantity(100)">100注</button>
+                            <button class="quick-batch-btn" onclick="setBatchQuantity(500)">500注</button>
+                            <button class="quick-batch-btn" onclick="setBatchQuantity(1000)">1000注</button>
+                        </div>
+                    </div>
+                    
+                    <div class="batch-preview">
+                        <div class="preview-info">
+                            <span>预计费用：¥<span id="batchCost">10</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCenterModal()">取消</button>
+                <button class="btn btn-primary" onclick="executeBatchRandom()">🎲 开始批量机选</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 绑定数量输入事件
+    const batchQuantityInput = document.getElementById('batchQuantity');
+    batchQuantityInput.addEventListener('input', updateBatchCost);
+    
+    // 初始化费用显示
+    updateBatchCost();
+}
+
+// 🔥 新增：设置批量机选数量
+function setBatchQuantity(quantity) {
+    const batchQuantityInput = document.getElementById('batchQuantity');
+    if (batchQuantityInput) {
+        batchQuantityInput.value = quantity;
+        updateBatchCost();
+    }
+}
+
+// 🔥 新增：批量设置功能
+function setBatchQuantityQuick(quantity) {
+    setQuantity(quantity);
+    showQuantityAlert(`快速设置: ${quantity}注`);
+
+}
+
+// 🔥 新增：更新批量机选费用
+function updateBatchCost() {
+    const batchQuantityInput = document.getElementById('batchQuantity');
+    const batchCostSpan = document.getElementById('batchCost');
+    
+    if (batchQuantityInput && batchCostSpan) {
+        const quantity = parseInt(batchQuantityInput.value) || 0;
+        const cost = quantity * ticketPrice;
+        batchCostSpan.textContent = cost;
+    }
+}
+
+// 🔥 新增：执行批量机选
+function executeBatchRandom() {
+    const batchQuantityInput = document.getElementById('batchQuantity');
+    const selectedType = document.querySelector('input[name="batchType"]:checked');
+    
+    const quantity = parseInt(batchQuantityInput.value);
+    const type = selectedType ? selectedType.value : currentLotteryType;
+    
+    if (isNaN(quantity) || quantity < 1) {
+        showQuantityAlert('请输入有效的机选数量（最少1注）！');
+        return;
+    }
+    
+    // 检查余额
+    const totalCost = quantity * ticketPrice;
+    if (accountBalance < totalCost) {
+        showQuantityAlert(`余额不足！需要 ¥${totalCost}，当前余额 ¥${accountBalance}`);
+        return;
+    }
+    
+    // 关闭模态框
+    closeCenterModal();
+    
+    // 切换到对应彩票类型
+    if (type !== currentLotteryType) {
+        switchLotteryType(type);
+    }
+    
+    // 开始批量机选
+    startBatchRandomProcess(quantity, type);
+}
+
+// 🔥 新增：批量机选处理流程
+function startBatchRandomProcess(quantity, type) {
+    let completedCount = 0;
+    const batchTickets = [];
+    
+    // 显示进度提示
+    showBatchProgress(0, quantity);
+    
+    function generateNextTicket() {
+        if (completedCount >= quantity) {
+            // 批量机选完成
+            finishBatchRandom(batchTickets);
+            return;
+        }
+        
+        // 清除当前选择
+        clearSelection();
+        
+        // 生成随机号码
+        if (type === 'doubleColor') {
+            const redNumbers = generateRandomNumbers(33, 6);
+            const blueNumber = generateRandomNumbers(16, 1)[0];
+            
+            selectedNumbers.doubleColor.red = redNumbers;
+            selectedNumbers.doubleColor.blue = [blueNumber];
+        } else {
+            const frontNumbers = generateRandomNumbers(35, 5);
+            const backNumbers = generateRandomNumbers(12, 2);
+            
+            selectedNumbers.daletou.front = frontNumbers;
+            selectedNumbers.daletou.back = backNumbers;
+        }
+        
+            // 创建投注单
+        const ticket = {
+            id: 'ticket_' + Date.now() + '_' + Math.random(),
+            lotteryType: type,
+            type: type,
+            period: getCurrentPeriod(type),
+            purchaseTime: new Date().toISOString(),
+            cost: ticketPrice,
+            status: 'waiting'
+        };
+        
+        if (type === 'doubleColor') {
+            ticket.numbers = [...selectedNumbers.doubleColor.red];
+            ticket.red = [...selectedNumbers.doubleColor.red];
+            ticket.blueNumber = selectedNumbers.doubleColor.blue[0];
+            ticket.blue = selectedNumbers.doubleColor.blue[0];
+        } else {
+            ticket.frontNumbers = [...selectedNumbers.daletou.front];
+            ticket.front = [...selectedNumbers.daletou.front];
+            ticket.backNumbers = [...selectedNumbers.daletou.back];
+            ticket.back = [...selectedNumbers.daletou.back];
+        }
+        
+        batchTickets.push(ticket);
+        completedCount++;
+        
+        // 更新进度
+        showBatchProgress(completedCount, quantity);
+        
+        // 继续生成下一注（添加延迟以显示进度）
+        setTimeout(generateNextTicket, 50);
+    }
+    
+    // 开始生成
+    generateNextTicket();
+}
+
+// 🔥 新增：显示批量机选进度
+function showBatchProgress(completed, total) {
+    const progressPercent = Math.round((completed / total) * 100);
+    
+    // 如果进度指示器不存在，创建一个
+    let progressModal = document.getElementById('batchProgressModal');
+    if (!progressModal) {
+        progressModal = document.createElement('div');
+        progressModal.id = 'batchProgressModal';
+        progressModal.className = 'center-modal';
+        progressModal.innerHTML = `
+            <div class="center-modal-content progress-modal">
+                <div class="modal-header">
+                    <h3>🎲 批量机选进行中...</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="batchProgressFill"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="batchProgressText">0%</span>
+                            <span id="batchProgressCount">0/0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(progressModal);
+    }
+    
+    // 更新进度
+    const progressFill = document.getElementById('batchProgressFill');
+    const progressText = document.getElementById('batchProgressText');
+    const progressCount = document.getElementById('batchProgressCount');
+    
+    if (progressFill) progressFill.style.width = `${progressPercent}%`;
+    if (progressText) progressText.textContent = `${progressPercent}%`;
+    if (progressCount) progressCount.textContent = `${completed}/${total}`;
+}
+
+// 🔥 修复：完成批量机选（移除重复扣款）
+function finishBatchRandom(batchTickets) {
+    // 移除进度模态框
+    const progressModal = document.getElementById('batchProgressModal');
+    if (progressModal) {
+        progressModal.remove();
+    }
+    
+    // 🔥 不在这里扣费，因为confirmBatchTickets已经扣过了
+
+    
+    // 更新显示（不重复扣费）
+    updateAccountDisplay();
+    updateStatsDisplay();
+    updateTicketsList();
+    // 🔥 更新中奖查询页面显示
+    updatePendingTicketsDisplay();
+    updateWinningTicketsDisplay();
+    
+    // 保存数据
+    saveData();
+    
+    
+}
+
+// 🔥 新增：显示批量机选成功提示
+function showBatchSuccessAlert(count, cost) {
+    const modal = document.createElement('div');
+    modal.className = 'center-modal';
+    modal.innerHTML = `
+        <div class="center-modal-overlay" onclick="closeCenterModal()"></div>
+        <div class="center-modal-content success">
+            <div class="modal-header">
+                <h3>🎉 批量机选成功</h3>
+                <button class="close-btn" onclick="closeCenterModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="success-info">
+                    <div class="success-icon">✅</div>
+                    <div class="success-details">
+                        <p>成功生成 <strong>${count}</strong> 注彩票</p>
+                        <p>总费用：<strong>¥${cost}</strong></p>
+                        <p>当前余额：<strong>¥${accountBalance.toFixed(2)}</strong></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeCenterModal()">确定</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 3秒后自动关闭
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.remove();
+        }
+    }, 3000);
 }
 
 function updateQuantityFromInput() {
@@ -674,15 +1328,15 @@ function updateQuantityFromInput() {
     const value = parseInt(input.value);
     
     if (isNaN(value) || value < 1) {
+        // 只检查最小值1注
         input.value = 1;
         betQuantity = 1;
         showQuantityAlert('最少投注1注！');
-    } else if (value > 20) {
-        input.value = 20;
-        betQuantity = 20;
-        showQuantityAlert('最多投注20注！');
     } else {
+        // 🔥 完全无上限：接受任何大于等于1的数值
         betQuantity = value;
+        input.value = betQuantity;
+
     }
     
     // 添加更新动画
@@ -699,8 +1353,8 @@ function adjustQuantity(change) {
     const input = document.getElementById('betQuantity');
     const newValue = parseInt(input.value) + change;
     
-    // 移除投注上限，只保留最低为1的限制
     if (newValue >= 1) {
+        // ✅ 完全移除上限限制
         betQuantity = newValue;
         input.value = betQuantity;
         
@@ -712,6 +1366,7 @@ function adjustQuantity(change) {
         
         updateCostDisplay();
         playQuantityAdjustSound();
+
     } else {
         playLimitSound();
         showQuantityAlert('最少投注1注！');
@@ -728,47 +1383,152 @@ function adjustQuantity(change) {
 }
 
 function setQuantity(quantity) {
-    betQuantity = quantity;
+    // ✅ 完全移除上限限制
+    if (quantity >= 1) {
+        betQuantity = quantity;
+        const betQuantityInput = document.getElementById('betQuantity');
+        if (betQuantityInput) {
+            betQuantityInput.value = betQuantity;
+            
+            // 添加更新动画
+            betQuantityInput.classList.add('quantity-updated');
+            setTimeout(() => {
+                betQuantityInput.classList.remove('quantity-updated');
+            }, 300);
+        }
+        
+        updateCostDisplay();
+        playQuantitySetSound();
+
+        
+        // 显示成功提示（仅大数量时）
+        if (quantity >= 100) {
+            showQuantityAlert(`已设置投注数量为 ${quantity} 注`);
+        }
+        
+        // 高亮当前选中的快捷按钮
+        setTimeout(() => {
+            try {
+                document.querySelectorAll('.quick-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                const targetBtn = document.querySelector(`[onclick="setQuantity(${quantity})"]`);
+                if (targetBtn) {
+                    targetBtn.classList.add('active');
+                    
+                    setTimeout(() => {
+                        targetBtn.classList.remove('active');
+                    }, 1500);
+                }
+            } catch (error) {
+
+            }
+        }, 10);
+    } else {
+        showQuantityAlert('最少投注1注！');
+    }
+}
+
+// 🔥 新增：叠加投注数量函数
+function addQuantity(amount) {
+    if (amount >= 1) {
+        const currentValue = parseInt(document.getElementById('betQuantity').value) || 0;
+        const newQuantity = currentValue + amount;
+        
+        // 设置新的数量
+        betQuantity = newQuantity;
+        const betQuantityInput = document.getElementById('betQuantity');
+        if (betQuantityInput) {
+            betQuantityInput.value = betQuantity;
+            
+            // 添加叠加动画效果
+            betQuantityInput.classList.add('quantity-add-animation');
+            setTimeout(() => {
+                betQuantityInput.classList.remove('quantity-add-animation');
+            }, 600);
+        }
+        
+        if (typeof updateCostDisplay === 'function') {
+            updateCostDisplay();
+        }
+        if (typeof playQuantitySetSound === 'function') {
+            playQuantitySetSound();
+        }
+        
+
+        
+        // 显示叠加提示
+        if (amount >= 100) {
+            if (typeof showQuantityAlert === 'function') {
+                showQuantityAlert(`已叠加 +${amount} 注\n当前总投注: ${betQuantity} 注`);
+            }
+        }
+        
+        // 添加视觉反馈
+        showAddQuantityFeedback(amount);
+    }
+}
+
+// 🔥 新增：显示叠加数量的视觉反馈
+function showAddQuantityFeedback(amount) {
+    const input = document.getElementById('betQuantity');
+    if (!input) return;
+    
+    // 创建浮动提示
+    const feedback = document.createElement('div');
+    feedback.className = 'quantity-add-feedback';
+    feedback.textContent = `+${amount}`;
+    feedback.style.cssText = `
+        position: absolute;
+        top: -30px;
+        right: 10px;
+        background: #27ae60;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 1000;
+        animation: quantityFeedback 1.5s ease-out forwards;
+        pointer-events: none;
+    `;
+    
+    // 添加到输入框的父容器
+    const container = input.parentElement;
+    if (container) {
+        container.style.position = 'relative';
+        container.appendChild(feedback);
+        
+        // 1.5秒后移除
+        setTimeout(() => {
+            if (feedback.parentElement) {
+                feedback.parentElement.removeChild(feedback);
+            }
+        }, 1500);
+    }
+}
+
+// 🔥 新增：重置投注数量函数
+function resetQuantity() {
+    betQuantity = 1;
     const betQuantityInput = document.getElementById('betQuantity');
     if (betQuantityInput) {
         betQuantityInput.value = betQuantity;
-        
-        // 添加更新动画
-        betQuantityInput.classList.add('quantity-updated');
-        setTimeout(() => {
-            betQuantityInput.classList.remove('quantity-updated');
-        }, 300);
     }
     
-    updateCostDisplay();
-    playQuantitySetSound();
+    if (typeof updateCostDisplay === 'function') {
+        updateCostDisplay();
+    }
     
-    // 高亮当前选中的快捷按钮
-    setTimeout(() => {
-        try {
-            document.querySelectorAll('.quick-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            const targetBtn = document.querySelector(`[onclick="setQuantity(${quantity})"]`);
-            if (targetBtn) {
-                targetBtn.classList.add('active');
-                
-                setTimeout(() => {
-                    targetBtn.classList.remove('active');
-                }, 1500);
-            }
-        } catch (error) {
-            console.log('按钮高亮失败:', error);
-        }
-    }, 10);
+
 }
 
 function updateCostDisplay() {
     const totalCost = betQuantity * ticketPrice;
     const costElement = document.getElementById('totalCost');
     if (costElement) {
-        costElement.textContent = totalCost;
+        costElement.textContent = totalCost; // 只显示数字，不要其他内容
         
         // 添加费用更新动画
         costElement.classList.add('cost-updated');
@@ -970,6 +1730,161 @@ function addCenterModalStyles() {
             border-top: 5px solid #3498db;
         }
         
+        .center-modal-content.batch-random {
+            border-top: 5px solid #9b59b6;
+            max-width: 600px;
+        }
+        
+        .center-modal-content.progress-modal {
+            border-top: 5px solid #f39c12;
+            max-width: 400px;
+        }
+        
+        .center-modal-content.success {
+            border-top: 5px solid #27ae60;
+        }
+        
+        .batch-options {
+            text-align: left;
+        }
+        
+        .option-group {
+            margin: 20px 0;
+        }
+        
+        .option-group label {
+            display: block;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .quantity-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quantity-input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .quantity-input-group .unit {
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+        
+        .type-selector {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .radio-option:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+        
+        .radio-option input[type="radio"] {
+            margin: 0;
+        }
+        
+        .quick-batch-options h4 {
+            margin: 15px 0 10px 0;
+            color: #2c3e50;
+        }
+        
+        .quick-batch-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .quick-batch-btn {
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .quick-batch-btn:hover {
+            border-color: #9b59b6;
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+        
+        .batch-preview {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .preview-info {
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .progress-container {
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .success-info {
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .success-details p {
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        
         .modal-header {
             padding: 20px 25px 15px;
             border-bottom: 1px solid #e9ecef;
@@ -1137,43 +2052,59 @@ function addCenterModalStyles() {
 
 // 处理投注
 function processBet(ticketData) {
-    accountBalance -= ticketData.totalCost;
+    // 🔥 立即显示投注成功，提升用户体验
+    showBetSuccessAlert(ticketData);
     
-    for (let i = 0; i < ticketData.quantity; i++) {
-        const ticket = {
-            id: 'ticket_' + Date.now() + '_' + i,
-            lotteryType: ticketData.type,
-            type: ticketData.type,
-            period: getCurrentPeriod(),
-            purchaseTime: new Date().toISOString(),
-            cost: ticketPrice,
-            status: 'waiting'
-        };
-        
-        if (ticketData.type === 'doubleColor') {
-            ticket.numbers = ticketData.numbers;
-            ticket.red = ticketData.numbers;
-            ticket.blueNumber = ticketData.blueNumber;
-            ticket.blue = ticketData.blueNumber;
-        } else {
-            ticket.frontNumbers = ticketData.frontNumbers;
-            ticket.front = ticketData.frontNumbers;
-            ticket.backNumbers = ticketData.backNumbers;
-            ticket.back = ticketData.backNumbers;
+    // 🔥 立即更新余额和界面
+    accountBalance -= ticketData.totalCost;
+    updateAccountDisplay();
+    clearSelection();
+    
+    // 🔥 异步处理数据保存，避免阻塞
+    requestAnimationFrame(() => {
+        for (let i = 0; i < ticketData.quantity; i++) {
+            const ticket = {
+                id: 'ticket_' + Date.now() + '_' + i,
+                lotteryType: ticketData.type,
+                type: ticketData.type,
+                period: getCurrentPeriod(),
+                purchaseTime: new Date().toISOString(),
+                cost: ticketPrice,
+                status: 'waiting'
+            };
+            
+            if (ticketData.type === 'doubleColor') {
+                ticket.numbers = ticketData.numbers;
+                ticket.red = ticketData.numbers;
+                ticket.blueNumber = ticketData.blueNumber;
+                ticket.blue = ticketData.blueNumber;
+            } else {
+                ticket.frontNumbers = ticketData.frontNumbers;
+                ticket.front = ticketData.frontNumbers;
+                ticket.backNumbers = ticketData.backNumbers;
+                ticket.back = ticketData.backNumbers;
+            }
+            
+            userTickets.push(ticket);
         }
         
-        userTickets.push(ticket);
-    }
-    
-    stats.totalTickets += ticketData.quantity;
-    stats.totalSpent += ticketData.totalCost;
-    
-    showBetSuccessAlert(ticketData);
-    updateAccountDisplay();
-    updateStatsDisplay();
-    updateTicketsList();
-    clearSelection();
-    saveData();
+        stats.totalTickets += ticketData.quantity;
+        stats.totalSpent += ticketData.totalCost;
+        
+        // 🔥 分批更新界面，避免一次性处理太多
+        updateStatsDisplay();
+        
+        setTimeout(() => {
+            updateTicketsList();
+            updatePendingTicketsDisplay();
+            updateWinningTicketsDisplay();
+            
+            // 🔥 延迟保存数据，避免阻塞用户操作
+            setTimeout(() => {
+                saveData();
+            }, 100);
+        }, 50);
+    });
 }
 
 // 显示投注成功提示
@@ -1237,7 +2168,7 @@ function showTab(tabName) {
                 activeBtn.classList.add('active');
             }
         } catch (btnError) {
-            console.log('标签按钮激活失败:', btnError);
+
         }
         
         // 更新导航指示器位置（阴影跟随）
@@ -1250,7 +2181,7 @@ function showTab(tabName) {
             safeCall(updateStatsDisplay);
         }
     } catch (error) {
-        console.error('切换标签页错误:', error);
+
         if (statusIndicator) {
             statusIndicator.show('页面切换失败', 'error', 2000);
         }
@@ -1259,7 +2190,7 @@ function showTab(tabName) {
 
 // 更新导航指示器 - 阴影跟随效果
 function updateNavIndicator(tabName) {
-    const tabs = ['selection', 'draw', 'check', 'account'];
+    const tabs = ['selection', 'draw', 'history', 'check', 'account']; // 🔥 更新为5个标签
     const index = tabs.indexOf(tabName);
     if (index !== -1) {
         // 移除旧样式
@@ -1281,6 +2212,145 @@ function updateNavIndicator(tabName) {
     }
 }
 
+// 🔥 新增：切换开奖历史类型
+function switchHistoryType(type) {
+    try {
+        // 隐藏所有历史列表
+        document.querySelectorAll('.history-list').forEach(list => {
+            list.classList.remove('active');
+        });
+        
+        // 移除所有按钮的激活状态
+        document.querySelectorAll('.history-type-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // 显示对应的历史列表
+        const targetList = document.getElementById(`${type}History`);
+        if (targetList) {
+            targetList.classList.add('active');
+        }
+        
+        // 激活对应的按钮
+        const activeBtn = document.querySelector(`[onclick*="switchHistoryType('${type}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+        
+        // 加载对应类型的历史记录
+        loadHistoryData(type);
+        
+
+    } catch (error) {
+
+    }
+}
+
+// 🔥 新增：加载历史记录数据
+function loadHistoryData(type) {
+    try {
+        const container = document.getElementById(`${type}History`);
+        if (!container) {
+            // 如果容器不存在，可能是DOM还没加载完成，稍后重试
+
+            setTimeout(() => {
+                const retryContainer = document.getElementById(`${type}History`);
+                if (retryContainer) {
+                    loadHistoryData(type);
+                }
+            }, 1000);
+            return;
+        }
+        
+        // 获取对应类型的开奖结果
+        const results = drawResults[type] || [];
+        
+        if (results.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.8);">
+                    <p style="font-size: 18px; margin-bottom: 10px;">📊</p>
+                    <p>暂无${type === 'doubleColor' ? '双色球' : '大乐透'}历史记录</p>
+                    <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">请先进行开奖</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // 按时间倒序排列，最新的在前
+        const sortedResults = [...results].reverse();
+        
+        const historyHTML = sortedResults.map((result, index) => {
+            // 🔥 修复：使用result中的实际时间和期号
+            const date = result.drawTime ? new Date(result.drawTime).toLocaleDateString() : new Date().toLocaleDateString();
+            const time = result.drawTime ? new Date(result.drawTime).toLocaleTimeString() : new Date().toLocaleTimeString();
+            const period = result.period || `第${results.length - index}期`;
+            
+            return createHistoryItemHTML(result, date, time, period, type);
+        }).join('');
+        
+        container.innerHTML = historyHTML;
+        
+
+    } catch (error) {
+
+        const container = document.getElementById(`${type}History`);
+        if (container) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                    <p>❌ 历史记录加载失败</p>
+                    <p style="font-size: 12px; margin-top: 8px;">${error.message}</p>
+                </div>
+            `;
+        }
+    }
+}
+
+// 🔥 新增：创建历史记录项HTML
+function createHistoryItemHTML(result, date, time, period, type) {
+    let numbers = [];
+    let specialNumbers = [];
+    
+    // 🔥 修复：根据彩票类型获取正确的号码数据
+    if (type === 'doubleColor') {
+        // 双色球：红球 + 蓝球
+        numbers = result.numbers || result.red || [];
+        specialNumbers = result.blueNumber ? [result.blueNumber] : (result.blue ? [result.blue] : []);
+    } else {
+        // 大乐透：前区 + 后区
+        numbers = result.frontNumbers || result.front || [];
+        specialNumbers = result.backNumbers || result.back || [];
+    }
+    
+    // 生成号码球HTML
+    const numbersHTML = numbers.map(num => 
+        `<div class="history-ball ${type === 'doubleColor' ? 'red-ball' : 'front-ball'}">${num.toString().padStart(2, '0')}</div>`
+    ).join('');
+    
+    const specialHTML = specialNumbers.map(num => 
+        `<div class="history-ball ${type === 'doubleColor' ? 'blue-ball' : 'back-ball'}">${num.toString().padStart(2, '0')}</div>`
+    ).join('');
+    
+    const typeLabel = type === 'doubleColor' ? '双色球' : '大乐透';
+    const numberLabel = type === 'doubleColor' ? '红球' : '前区';
+    const specialLabel = type === 'doubleColor' ? '蓝球' : '后区';
+    
+    return `
+        <div class="history-item">
+            <div class="history-item-header">
+                <span class="history-period">${typeLabel} ${period}</span>
+                <span class="history-date">${date} ${time}</span>
+            </div>
+            <div class="history-numbers">
+                <span style="color: #7f8c8d; font-weight: bold; margin-right: 8px;">${numberLabel}:</span>
+                ${numbersHTML}
+                <span class="history-separator">|</span>
+                <span style="color: #7f8c8d; font-weight: bold; margin-right: 8px;">${specialLabel}:</span>
+                ${specialHTML}
+            </div>
+        </div>
+    `;
+}
+
 // 生成随机不重复数字
 function generateRandomNumbers(max, count) {
     const numbers = [];
@@ -1294,13 +2364,18 @@ function generateRandomNumbers(max, count) {
 }
 
 // 获取当前期号
-function getCurrentPeriod(type) {
+function getCurrentPeriod(type = currentDrawType) {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
-    const date = String(now.getDate()).padStart(2, '0');
-    const typePrefix = type === 'doubleColor' ? 'SSQ' : 'DLT';
-    return `${typePrefix}${year}${month}${date}`;
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    // 根据彩票类型生成不同的期号格式
+    if (type === 'doubleColor') {
+        return `${year}${month}${day}-DC`;
+    } else {
+        return `${year}${month}${day}-DLT`;
+    }
 }
 
 // 格式化投注确认中的号码显示
@@ -1355,12 +2430,33 @@ function getStatusText(status) {
 // 更新账户显示
 function updateAccountDisplay() {
     try {
+        // 🔥 确保余额同步
+        if (typeof window.accountBalance !== 'number') {
+            window.accountBalance = parseFloat(window.accountBalance) || 1000;
+        }
+        accountBalance = window.accountBalance;
+        
         const balanceElement = safeGetElement('accountBalance');
         if (balanceElement) {
-            balanceElement.textContent = `¥ ${accountBalance.toFixed(2)}`;
+            balanceElement.textContent = `¥ ${window.accountBalance.toFixed(2)}`;
+            
+            // 🔥 添加更新动画
+            balanceElement.style.animation = 'none';
+            balanceElement.offsetHeight;
+            balanceElement.style.animation = 'balanceUpdate 0.6s ease-out';
         }
+        
+        // 🔥 更新所有余额显示元素
+        const allBalanceElements = document.querySelectorAll('[data-balance], .account-balance, .balance-display, .current-balance');
+        allBalanceElements.forEach(element => {
+            if (element) {
+                element.textContent = `¥${window.accountBalance.toFixed(2)}`;
+            }
+        });
+        
+
     } catch (error) {
-        console.error('更新账户显示错误:', error);
+
     }
 }
 
@@ -1379,7 +2475,48 @@ function updateStatsDisplay() {
         if (elements.totalSpent) elements.totalSpent.textContent = `¥${stats.totalSpent}`;
         if (elements.totalWinnings) elements.totalWinnings.textContent = `¥${stats.totalWinnings}`;
     } catch (error) {
-        console.error('更新统计信息错误:', error);
+
+    }
+}
+
+// 🔥 修复：添加缺失的updatePrizeTable函数
+function updatePrizeTable() {
+    try {
+        const prizeTableBody = document.getElementById('prizeTableBody');
+        if (!prizeTableBody) {
+            console.log('奖金表元素不存在，跳过更新');
+            return;
+        }
+        
+        let tableHTML = '';
+        
+        if (currentDrawType === 'doubleColor') {
+            tableHTML = `
+                <tr><td>一等奖</td><td>6+1</td><td>¥5,000,000</td></tr>
+                <tr><td>二等奖</td><td>6+0</td><td>¥100,000</td></tr>
+                <tr><td>三等奖</td><td>5+1</td><td>¥3,000</td></tr>
+                <tr><td>四等奖</td><td>5+0 或 4+1</td><td>¥200</td></tr>
+                <tr><td>五等奖</td><td>4+0 或 3+1</td><td>¥10</td></tr>
+                <tr><td>六等奖</td><td>2+1 或 1+1 或 0+1</td><td>¥5</td></tr>
+            `;
+        } else {
+            tableHTML = `
+                <tr><td>一等奖</td><td>5+2</td><td>¥10,000,000</td></tr>
+                <tr><td>二等奖</td><td>5+1</td><td>¥200,000</td></tr>
+                <tr><td>三等奖</td><td>5+0</td><td>¥10,000</td></tr>
+                <tr><td>四等奖</td><td>4+2</td><td>¥3,000</td></tr>
+                <tr><td>五等奖</td><td>4+1</td><td>¥300</td></tr>
+                <tr><td>六等奖</td><td>3+2</td><td>¥200</td></tr>
+                <tr><td>七等奖</td><td>4+0</td><td>¥100</td></tr>
+                <tr><td>八等奖</td><td>3+1 或 2+2</td><td>¥15</td></tr>
+                <tr><td>九等奖</td><td>3+0 或 2+1 或 1+2</td><td>¥5</td></tr>
+            `;
+        }
+        
+        prizeTableBody.innerHTML = tableHTML;
+        console.log('✅ 奖金表更新完成');
+    } catch (error) {
+        console.error('❌ 更新奖金表失败:', error);
     }
 }
 
@@ -1388,19 +2525,50 @@ function updateStats() {
     updateStatsDisplay();
 }
 
-// 更新投注单列表
+// 🚀 性能优化：更新投注单列表（虚拟化 + 防抖）
+let updateTicketsDebounce = null;
+
 function updateTicketsList() {
+    // 防抖处理，避免频繁更新
+    if (updateTicketsDebounce) {
+        clearTimeout(updateTicketsDebounce);
+    }
+    
+    updateTicketsDebounce = setTimeout(() => {
+        updateTicketsListInternal();
+    }, 16); // 约60fps的更新频率
+}
+
+function updateTicketsListInternal() {
     try {
         const container = safeGetElement('ticketsList');
         if (!container) return;
         
         if (userTickets.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #7f8c8d;">暂无投注记录</p>';
+            container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">暂无投注记录</p>';
             return;
         }
         
-        container.innerHTML = userTickets.slice(-10).reverse().map(ticket => `
-            <div class="ticket-item ${ticket.status}">
+        // 🚀 性能优化：只渲染可见区域的票据（虚拟化思想）
+        const maxVisible = 50; // 最多显示50条记录
+        const ticketsToShow = userTickets.slice(-maxVisible).reverse(); // 显示最新的记录在前
+        
+        // 使用DocumentFragment批量创建
+        const fragment = document.createDocumentFragment();
+        
+        // 分批渲染，避免长任务
+        const batchSize = 10;
+        let processed = 0;
+        
+        function renderBatch() {
+            const start = processed;
+            const end = Math.min(processed + batchSize, ticketsToShow.length);
+            
+            for (let i = start; i < end; i++) {
+                const ticket = ticketsToShow[i];
+                const ticketElement = document.createElement('div');
+                ticketElement.className = `ticket-item ${ticket.status}`;
+                ticketElement.innerHTML = `
                 <div class="ticket-header">
                     <span class="ticket-type">${ticket.lotteryType === 'doubleColor' ? '双色球' : '大乐透'}</span>
                     <span class="ticket-status">${getStatusText(ticket.status)}</span>
@@ -1413,10 +2581,54 @@ function updateTicketsList() {
                     <span>金额: ¥${ticket.cost}</span>
                     <span>时间: ${new Date(ticket.purchaseTime).toLocaleString()}</span>
                 </div>
-            </div>
-        `).join('');
+                `;
+                fragment.appendChild(ticketElement);
+                processed++;
+            }
+            
+            if (processed < ticketsToShow.length) {
+                requestAnimationFrame(renderBatch);
+            } else {
+                // 清空容器并添加所有元素
+                container.innerHTML = '';
+                container.appendChild(fragment);
+                
+                // 添加滚动提示
+                addScrollHint(container);
+            }
+        }
+        
+        renderBatch();
+        
     } catch (error) {
-        console.error('更新投注单列表错误:', error);
+
+    }
+}
+
+// 添加滚动提示的辅助函数
+function addScrollHint(container) {
+    if (userTickets.length > 3) {
+        const scrollHint = document.createElement('div');
+        scrollHint.style.cssText = `
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            padding: 5px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            position: sticky;
+            bottom: 0;
+            margin: 0 -10px -10px -10px;
+        `;
+        
+        const totalCount = userTickets.length;
+        const displayCount = Math.min(50, totalCount);
+        
+        scrollHint.textContent = totalCount > 50 
+            ? `显示最新${displayCount}条记录，共${totalCount}条，可滚动查看`
+            : `共${totalCount}条记录，可滚动查看更多`;
+            
+        container.appendChild(scrollHint);
     }
 }
 
@@ -1446,12 +2658,115 @@ function closeModal() {
 // 数据存储
 function saveData() {
     try {
+        // 🔥 确保accountBalance是数字类型
+        if (typeof window.accountBalance !== 'number') {
+            window.accountBalance = parseFloat(window.accountBalance) || 1000;
+        }
+        
+        // 🔥 优化数据存储：清理过期和不必要的数据
+        cleanupStorageData();
+        
         localStorage.setItem('lotteryUserTickets', JSON.stringify(userTickets));
-        localStorage.setItem('lotteryAccountBalance', accountBalance.toString());
+        localStorage.setItem('lotteryAccountBalance', window.accountBalance.toString());
         localStorage.setItem('lotteryStats', JSON.stringify(stats));
         localStorage.setItem('lotteryDrawResults', JSON.stringify(drawResults));
+        
+        // 🔥 新增：同步保存全局余额
+        localStorage.setItem('globalAccountBalance', window.accountBalance.toString());
+        
+        console.log('💾 主系统数据已保存，余额:', window.accountBalance);
     } catch (error) {
         console.error('保存数据失败:', error);
+        
+        // 🔥 存储空间不足时的处理
+        if (error.name === 'QuotaExceededError') {
+            handleStorageQuotaExceeded();
+        }
+    }
+}
+
+// 🔥 新增：清理存储数据
+function cleanupStorageData() {
+    try {
+        const currentTime = new Date();
+        const thirtyDaysAgo = new Date(currentTime.getTime() - 30 * 24 * 60 * 60 * 1000);
+        
+        // 🔥 清理超过30天的投注记录，只保留中奖的
+        const filteredTickets = userTickets.filter(ticket => {
+            const ticketDate = new Date(ticket.purchaseTime);
+            const isRecent = ticketDate > thirtyDaysAgo;
+            const isWinning = ticket.status === 'winning';
+            return isRecent || isWinning;
+        });
+        
+        // 🔥 如果清理后数据量仍然很大，进一步优化
+        if (filteredTickets.length > 1000) {
+            // 只保留最近的500条记录和所有中奖记录
+            const winningTickets = filteredTickets.filter(t => t.status === 'winning');
+            const recentTickets = filteredTickets
+                .filter(t => t.status !== 'winning')
+                .sort((a, b) => new Date(b.purchaseTime) - new Date(a.purchaseTime))
+                .slice(0, 500);
+            
+            userTickets = [...winningTickets, ...recentTickets];
+        } else {
+            userTickets = filteredTickets;
+        }
+        
+        // 🔥 清理开奖历史，只保留最近的100条
+        Object.keys(drawResults).forEach(type => {
+            if (drawResults[type].length > 100) {
+                drawResults[type] = drawResults[type]
+                    .sort((a, b) => new Date(b.drawTime) - new Date(a.drawTime))
+                    .slice(0, 100);
+            }
+        });
+        
+        console.log(`🧹 数据清理完成，投注记录: ${userTickets.length} 条`);
+    } catch (error) {
+        console.error('❌ 数据清理失败:', error);
+    }
+}
+
+// 🔥 新增：处理存储配额超限
+function handleStorageQuotaExceeded() {
+    try {
+        console.warn('⚠️ 存储空间不足，开始紧急清理...');
+        
+        // 🔥 紧急清理：只保留最近的100条记录和中奖记录
+        const winningTickets = userTickets.filter(t => t.status === 'winning');
+        const recentTickets = userTickets
+            .filter(t => t.status !== 'winning')
+            .sort((a, b) => new Date(b.purchaseTime) - new Date(a.purchaseTime))
+            .slice(0, 100);
+        
+        userTickets = [...winningTickets, ...recentTickets];
+        
+        // 🔥 大幅减少开奖历史
+        Object.keys(drawResults).forEach(type => {
+            drawResults[type] = drawResults[type]
+                .sort((a, b) => new Date(b.drawTime) - new Date(a.drawTime))
+                .slice(0, 20);
+        });
+        
+        // 🔥 尝试重新保存
+        try {
+            localStorage.setItem('lotteryUserTickets', JSON.stringify(userTickets));
+            localStorage.setItem('lotteryStats', JSON.stringify(stats));
+            localStorage.setItem('lotteryDrawResults', JSON.stringify(drawResults));
+            localStorage.setItem('lotteryAccountBalance', window.accountBalance.toString());
+            localStorage.setItem('globalAccountBalance', window.accountBalance.toString());
+            
+            console.log('✅ 紧急清理完成，数据重新保存成功');
+            
+            // 🔥 提示用户
+            showCenterModal('📁 存储优化', '系统已自动清理历史数据以释放存储空间，不影响您的余额和中奖记录！', 'info');
+        } catch (retryError) {
+            console.error('❌ 紧急清理后仍无法保存:', retryError);
+            showCenterModal('⚠️ 存储问题', '存储空间不足，部分数据可能无法保存。建议清理浏览器缓存。', 'warning');
+        }
+    } catch (error) {
+        console.error('❌ 处理存储配额超限失败:', error);
     }
 }
 
@@ -1463,9 +2778,19 @@ function loadData() {
             userTickets = JSON.parse(savedTickets);
         }
         
+        // 🔥 优先从全局余额加载
+        const globalBalance = localStorage.getItem('globalAccountBalance');
         const savedBalance = localStorage.getItem('lotteryAccountBalance');
-        if (savedBalance) {
-            accountBalance = parseFloat(savedBalance);
+        
+        if (globalBalance) {
+            window.accountBalance = parseFloat(globalBalance);
+            accountBalance = window.accountBalance;
+        } else if (savedBalance) {
+            window.accountBalance = parseFloat(savedBalance);
+            accountBalance = window.accountBalance;
+        } else {
+            window.accountBalance = 1000;
+            accountBalance = 1000;
         }
         
         const savedStats = localStorage.getItem('lotteryStats');
@@ -1477,9 +2802,83 @@ function loadData() {
         if (savedDrawResults) {
             drawResults = JSON.parse(savedDrawResults);
         }
+        
+        console.log('📂 主系统数据已加载，余额:', window.accountBalance);
+        
+        // 🔥 初始化中奖查询页面显示
+        setTimeout(() => {
+            updatePendingTicketsDisplay();
+            updateWinningTicketsDisplay();
+            
+            // 🔥 添加示例大乐透记录（仅在没有记录时）
+            addSampleDaletouHistory();
+            
+            // 🔥 添加示例中奖记录（仅在没有记录时）
+            addSampleWinningTickets();
+        }, 100);
     } catch (error) {
         console.error('加载数据失败:', error);
     }
+}
+
+// 🔥 强制移除投注数量限制
+document.addEventListener('DOMContentLoaded', function() {
+    // 移除input的max属性
+    const betQuantityInput = document.getElementById('betQuantity');
+    if (betQuantityInput) {
+        betQuantityInput.removeAttribute('max');
+        betQuantityInput.setAttribute('min', '1');
+
+    }
+});
+
+// 🔥 自定义数量输入验证
+function setupCustomQuantityValidation() {
+    const customInput = document.getElementById('customQuantity');
+    if (!customInput) return;
+    
+    customInput.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        
+        // 移除之前的样式
+        this.classList.remove('valid', 'invalid');
+        
+        if (this.value === '') {
+            return;
+        }
+        
+        // 验证输入值
+        if (isNaN(value) || value < 1) {
+            this.classList.add('invalid');
+            this.title = '请输入有效的数字（最小为1）';
+        } else if (value > 99999) {
+            this.classList.add('invalid');
+            this.title = '数量不能超过99999';
+            this.value = '99999'; // 自动限制最大值
+        } else {
+            this.classList.add('valid');
+            this.title = '输入有效';
+        }
+    });
+    
+    // 限制只能输入数字
+    customInput.addEventListener('keypress', function(e) {
+        if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+            e.preventDefault();
+        }
+    });
+    
+    // 粘贴验证
+    customInput.addEventListener('paste', function(e) {
+        setTimeout(() => {
+            const value = parseInt(this.value);
+            if (isNaN(value) || value < 1) {
+                this.value = '';
+            } else if (value > 99999) {
+                this.value = '99999';
+            }
+        }, 10);
+    });
 }
 
 // 页面加载管理
@@ -1524,6 +2923,63 @@ class PageLoader {
             setTimeout(() => loader.remove(), 500);
         }
     }
+}
+
+// 🔥 增强开奖大厅交互效果
+function enhanceDrawHallInteractions() {
+    // 倒计时数字跳动效果
+    const countdownNumbers = document.querySelectorAll('.countdown-number');
+    countdownNumbers.forEach(number => {
+        number.addEventListener('animationend', () => {
+            number.style.animation = 'none';
+            setTimeout(() => {
+                number.style.animation = 'numberPulse 0.5s ease';
+            }, 10);
+        });
+    });
+    
+    // 开奖按钮点击波纹效果
+    const drawBtn = document.querySelector('.btn-draw');
+    if (drawBtn) {
+        drawBtn.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}px;
+                top: ${y}px;
+                background: rgba(255, 255, 255, 0.5);
+                border-radius: 50%;
+                transform: scale(0);
+                animation: ripple 0.6s linear;
+                pointer-events: none;
+            `;
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    }
+    
+    // 奖金表格行悬停效果
+    const prizeRows = document.querySelectorAll('.prize-table tbody tr');
+    prizeRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.background = 'linear-gradient(90deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.background = '';
+        });
+    });
 }
 
 // 状态提示管理
@@ -1813,21 +3269,10 @@ class FloatingActionButton {
     
     playFABSound(startFreq, endFreq) {
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(startFreq, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(endFreq, audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.2);
+            // 🔥 使用全局音频管理器，避免直接创建AudioContext
+            if (typeof audioManager !== 'undefined' && audioManager.userInteracted) {
+                audioManager.playSound(startFreq, 0.2, 0.1);
+            }
         } catch (error) {
             // 静默处理音频错误
         }
@@ -2066,6 +3511,8 @@ class AnimationManager {
 // 交互增强管理器
 class InteractionEnhancer {
     constructor() {
+        this.lastHoverTime = 0;
+        this.hoverCooldown = 50; // 50ms防抖间隔
         this.setupHoverEffects();
         this.setupClickEffects();
         this.setupKeyboardShortcuts();
@@ -2076,14 +3523,27 @@ class InteractionEnhancer {
         // 为所有球添加悬浮音效和视觉反馈
         document.addEventListener('mouseover', (e) => {
             if (e.target.classList.contains('ball')) {
-                this.playHoverSound();
+                this.playHoverSound(e.target);
                 e.target.style.transform = 'scale(1.1)';
+                e.target.style.transition = 'all 0.2s ease';
+                
+                // 添加微妙的发光效果
+                if (e.target.classList.contains('red-ball')) {
+                    e.target.style.boxShadow = '0 0 15px rgba(231, 76, 60, 0.6)';
+                } else if (e.target.classList.contains('blue-ball')) {
+                    e.target.style.boxShadow = '0 0 15px rgba(52, 152, 219, 0.6)';
+                } else if (e.target.classList.contains('front-ball')) {
+                    e.target.style.boxShadow = '0 0 15px rgba(231, 76, 60, 0.6)'; // 大乐透前区球现在是红色
+                } else if (e.target.classList.contains('back-ball')) {
+                    e.target.style.boxShadow = '0 0 15px rgba(52, 152, 219, 0.6)'; // 大乐透后区球现在是蓝色
+                }
             }
         });
         
         document.addEventListener('mouseout', (e) => {
             if (e.target.classList.contains('ball')) {
                 e.target.style.transform = '';
+                e.target.style.boxShadow = '';
             }
         });
     }
@@ -2210,21 +3670,35 @@ class InteractionEnhancer {
         }
     }
     
-    playHoverSound() {
+    playHoverSound(ballElement) {
+        // 🔊 启用球体悬停音效（带防抖）
+        const now = Date.now();
+        if (now - this.lastHoverTime < this.hoverCooldown) {
+            return; // 防抖：如果距离上次播放音效不足50ms，则跳过
+        }
+        this.lastHoverTime = now;
+        
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.02, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
+            if (typeof audioManager !== 'undefined' && audioManager.userInteracted) {
+                let frequency = 600; // 默认频率
+                
+                // 根据球类型设置不同的音效频率
+                if (ballElement && ballElement.classList) {
+                    if (ballElement.classList.contains('red-ball')) {
+                        frequency = 650 + Math.random() * 100; // 双色球红球：650-750Hz，温暖音调
+                    } else if (ballElement.classList.contains('blue-ball')) {
+                        frequency = 750 + Math.random() * 100; // 双色球蓝球：750-850Hz，清脆音调
+                    } else if (ballElement.classList.contains('front-ball')) {
+                        frequency = 650 + Math.random() * 100; // 大乐透前区球(红色)：650-750Hz，与红球同音调
+                    } else if (ballElement.classList.contains('back-ball')) {
+                        frequency = 750 + Math.random() * 100; // 大乐透后区球(蓝色)：750-850Hz，与蓝球同音调
+                    } else {
+                        frequency = 700 + Math.random() * 100; // 其他球：700-800Hz，中性音调
+                    }
+                }
+                
+                audioManager.playSound(frequency, 0.08, 0.04); // 音量0.08，持续0.04秒
+            }
         } catch (error) {
             // 静默处理音频错误
         }
@@ -2243,7 +3717,7 @@ class PerformanceMonitor {
         // 监控页面加载性能
         window.addEventListener('load', () => {
             const loadTime = performance.now() - this.startTime;
-            console.log(`页面加载时间: ${loadTime.toFixed(2)}ms`);
+
             
             if (loadTime > 3000) {
                 statusIndicator.show('页面加载较慢，建议检查网络连接', 'warning', 5000);
@@ -2258,34 +3732,78 @@ class PerformanceMonitor {
             setInterval(() => {
                 const memory = performance.memory;
                 if (memory.usedJSHeapSize > 50 * 1024 * 1024) { // 50MB
-                    console.warn('内存使用过高:', memory.usedJSHeapSize / 1024 / 1024, 'MB');
+
                 }
             }, 30000);
         }
         
+        // 🔥 优化：使用requestIdleCallback减少性能影响
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => {
+                this.initPerformanceObserver();
+            });
+        } else {
+            setTimeout(() => {
+                this.initPerformanceObserver();
+            }, 1000);
+        }
+    }
+    
+    initPerformanceObserver() {
         // 监控长任务
         if ('PerformanceObserver' in window) {
             const observer = new PerformanceObserver((list) => {
                 for (const entry of list.getEntries()) {
                     if (entry.duration > 50) {
-                        console.warn('检测到长任务:', entry.duration, 'ms');
+                        // 🔥 减少控制台输出频率
+                        if (Math.random() < 0.1) { // 只输出10%的长任务警告
+
+                        }
+                        
+                        // 🔥 自动优化建议
+                        if (entry.duration > 100) {
+                            this.suggestOptimization(entry);
+                        }
                     }
                 }
             });
-            observer.observe({ entryTypes: ['longtask'] });
+            
+            try {
+                observer.observe({ entryTypes: ['longtask'] });
+            } catch (error) {
+
+            }
         }
+    }
+    
+    // 🔥 优化：性能优化建议（减少频率）
+    suggestOptimization(entry) {
+        // 减少建议输出频率，避免控制台刷屏
+        if (Math.random() > 0.05) return; // 只有5%概率输出建议
+        
+        const suggestions = [
+            '考虑使用requestAnimationFrame分解长任务',
+            '检查是否有同步的DOM操作可以异步化',
+            '考虑使用Web Workers处理计算密集型任务',
+            '检查是否有不必要的循环或递归',
+            '使用DocumentFragment批量操作DOM',
+            '考虑虚拟化长列表显示'
+        ];
+        
+        const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+
     }
     
     setupErrorHandling() {
         // 全局错误处理
         window.addEventListener('error', (e) => {
-            console.error('JavaScript错误:', e.error);
+
             statusIndicator.show('系统出现错误，请刷新页面重试', 'error', 5000);
         });
         
         // Promise错误处理
         window.addEventListener('unhandledrejection', (e) => {
-            console.error('未处理的Promise错误:', e.reason);
+
             e.preventDefault();
         });
     }
@@ -2303,7 +3821,7 @@ class PerformanceMonitor {
                     load: navigation.loadEventEnd - navigation.loadEventStart
                 };
                 
-                console.log('性能指标:', metrics);
+
             }
         }
     }
@@ -2313,7 +3831,7 @@ class PerformanceMonitor {
             const start = performance.now();
             const result = fn.apply(this, args);
             const end = performance.now();
-            console.log(`${name} 执行时间: ${(end - start).toFixed(2)}ms`);
+
             return result;
         };
     }
@@ -2732,19 +4250,11 @@ function addRandomSelectStyles() {
 // 新增跑马灯音效
 function playRandomTickSound() {
     try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(800 + Math.random() * 400, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.1);
+        // 🔥 使用全局音频管理器，避免直接创建AudioContext
+        if (typeof audioManager !== 'undefined' && audioManager.userInteracted) {
+            const frequency = 800 + Math.random() * 400;
+            audioManager.playSound(frequency, 0.1, 0.05);
+        }
     } catch (error) {
         // 静默处理音频错误
     }
@@ -3115,12 +4625,11 @@ function safeCall(fn, context = null, ...args) {
         if (typeof fn === 'function') {
             return fn.apply(context, args);
         } else {
-            console.warn('尝试调用非函数:', fn);
+
             return null;
         }
     } catch (error) {
-        console.error('函数调用错误:', error);
-        console.error('错误堆栈:', error.stack);
+
         if (typeof statusIndicator !== 'undefined' && statusIndicator && statusIndicator.show) {
             statusIndicator.show('操作失败，请重试', 'error', 2000);
         }
@@ -3130,15 +4639,110 @@ function safeCall(fn, context = null, ...args) {
 
 // 安全的DOM元素获取
 function safeGetElement(id) {
-    const element = document.getElementById(id);
-    if (!element) {
-        console.warn(`DOM元素未找到: ${id}`);
+    try {
+        const element = document.getElementById(id);
+        if (!element) {
+            // 🔥 尝试常见的ID变体
+            const alternatives = {
+                'drawCountdown': ['countdown', 'draw-countdown', 'drawTimer'],
+                'countdown': ['drawCountdown', 'timer', 'countdownTimer']
+            };
+            
+            if (alternatives[id]) {
+                for (const altId of alternatives[id]) {
+                    const altElement = document.getElementById(altId);
+                    if (altElement) {
+
+                        return altElement;
+                    }
+                }
+            }
+            
+            // 🔥 减少错误输出频率
+            if (!safeGetElement._errorCache) {
+                safeGetElement._errorCache = new Set();
+            }
+            
+            if (!safeGetElement._errorCache.has(id)) {
+
+                safeGetElement._errorCache.add(id);
+                
+                // 5秒后清除缓存，允许重新报错
+                setTimeout(() => {
+                    safeGetElement._errorCache.delete(id);
+                }, 5000);
+            }
+            
+            return null;
+        }
+        return element;
+    } catch (error) {
+
+        return null;
     }
-    return element;
 }
 
-// 修复初始化函数
+// 🔥 新增：按钮稳定性保护函数
+function protectDrawButton() {
+    try {
+        const drawAction = document.querySelector('.draw-action');
+        const btnDraw = document.querySelector('.btn-draw');
+        
+        if (drawAction) {
+            // 强制重置所有可能导致闪动的属性
+            drawAction.style.animation = 'none';
+            drawAction.style.transform = 'none';
+            drawAction.style.transition = 'none';
+            drawAction.style.willChange = 'auto';
+            drawAction.style.contain = 'layout style paint';
+            drawAction.style.isolation = 'isolate';
+            drawAction.style.position = 'relative';
+            drawAction.style.zIndex = '100';
+        }
+        
+        if (btnDraw) {
+            // 强制重置按钮状态
+            btnDraw.style.animation = 'none';
+            btnDraw.style.transform = 'none';
+            btnDraw.style.willChange = 'auto';
+            btnDraw.style.contain = 'layout style paint';
+            btnDraw.style.isolation = 'isolate';
+            btnDraw.style.position = 'relative';
+            
+            // 清除原有的事件监听器并重新绑定稳定的hover事件
+            const newBtn = btnDraw.cloneNode(true);
+            btnDraw.parentNode.replaceChild(newBtn, btnDraw);
+            
+            newBtn.addEventListener('mouseenter', function() {
+                this.style.background = 'linear-gradient(135deg, #c0392b, #a93226)';
+                this.style.boxShadow = '0 8px 25px rgba(231, 76, 60, 0.5)';
+                this.style.transform = 'none'; // 确保不移动
+            });
+            
+            newBtn.addEventListener('mouseleave', function() {
+                this.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                this.style.boxShadow = '0 8px 25px rgba(231, 76, 60, 0.4)';
+                this.style.transform = 'none'; // 确保不移动
+            });
+            
+            // 重新绑定点击事件
+            newBtn.addEventListener('click', function() {
+                if (typeof startDraw === 'function') {
+                    startDraw();
+                }
+            });
+        }
+        
+
+    } catch (error) {
+
+    }
+}
+
+// 🔥 修复：增强版安全初始化函数
 function initializeSystemSafely() {
+    console.log('🚀 开始系统安全初始化...');
+    
     // 确保所有必要的DOM元素存在
     const requiredElements = [
         'redBallGrid', 'blueBallGrid', 'frontBallGrid', 'backBallGrid',
@@ -3148,40 +4752,75 @@ function initializeSystemSafely() {
     
     const missingElements = requiredElements.filter(id => !document.getElementById(id));
     if (missingElements.length > 0) {
-        console.warn('缺少部分DOM元素:', missingElements);
-        console.log('系统将尝试继续初始化...');
+
+    }
+    
+    // 🔥 检查必要的函数是否存在（支持全局和window作用域）
+    const requiredFunctions = [
+        'initializeBalls', 'updatePrizeTable', 'updateStatsDisplay', 
+        'updateAccountDisplay', 'updateTicketsList', 'updateDrawHistory', 'startCountdown'
+    ];
+    
+    const missingFunctions = requiredFunctions.filter(funcName => {
+        try {
+            return typeof eval(funcName) !== 'function' && typeof window[funcName] !== 'function';
+        } catch (e) {
+            return typeof window[funcName] !== 'function';
+        }
+    });
+    
+    if (missingFunctions.length > 0) {
+
     }
     
     // 安全初始化
     try {
-        console.log('开始系统初始化...');
         
+        
+        // 球体初始化
+        if (typeof initializeBalls === 'function') {
         safeCall(initializeBalls);
-        console.log('球体初始化完成');
         
+        }
+        
+        // 奖金表更新
+        if (typeof updatePrizeTable === 'function') {
         safeCall(updatePrizeTable);
-        console.log('奖金表更新完成');
         
+        }
+        
+        // 统计信息更新
+        if (typeof updateStatsDisplay === 'function') {
         safeCall(updateStatsDisplay);
-        console.log('统计信息更新完成');
         
+        }
+        
+        // 账户显示更新
+        if (typeof updateAccountDisplay === 'function') {
         safeCall(updateAccountDisplay);
-        console.log('账户显示更新完成');
         
+        }
+        
+        // 投注单列表更新
+        if (typeof updateTicketsList === 'function') {
         safeCall(updateTicketsList);
-        console.log('投注单列表更新完成');
         
-        safeCall(updateDrawHistory);
-        console.log('开奖历史更新完成');
+        }
         
+        // 开奖历史更新（延迟到用户访问历史页面时）
+
+        
+        // 倒计时启动
+        if (typeof startCountdown === 'function') {
         safeCall(startCountdown);
-        console.log('倒计时启动完成');
         
-        console.log('系统初始化成功');
+        }
+        
+        console.log('🎉 系统初始化完全成功！');
         return true;
+        
     } catch (error) {
-        console.error('系统初始化失败:', error);
-        console.error('错误堆栈:', error.stack);
+        console.error('❌ 系统初始化失败:', error);
         return false;
     }
 }
@@ -3220,6 +4859,39 @@ function addShakeAnimation() {
             50% { transform: scale(1.2); }
             100% { transform: scale(1); }
         }
+        
+        .quantity-add-animation {
+            animation: quantityAddAnimation 0.6s ease-out;
+            border-color: #27ae60 !important;
+            box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+        }
+        
+        @keyframes quantityAddAnimation {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.15); }
+            50% { transform: scale(1.05); }
+            75% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes quantityFeedback {
+            0% {
+                opacity: 0;
+                transform: translateY(10px) scale(0.8);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(-5px) scale(1.1);
+            }
+            80% {
+                opacity: 1;
+                transform: translateY(-15px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-25px) scale(0.9);
+            }
+        }
     `;
     document.head.appendChild(style);
 }
@@ -3231,6 +4903,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 添加摇晃动画
     addShakeAnimation();
     
+    // 初始化自定义数量输入验证
+    setupCustomQuantityValidation();
+    
     // 加载保存的数据
     safeCall(loadData);
     
@@ -3238,8 +4913,11 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         new PageLoader();
     } catch (error) {
-        console.error('页面加载器创建失败:', error);
+
     }
+    
+    // 增强开奖大厅交互效果
+    enhanceDrawHallInteractions();
     
     // 延迟初始化其他组件
     setTimeout(() => {
@@ -3276,12 +4954,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 添加额外样式
                 safeCall(addAdditionalStyles);
                 
+                // 🔥 启用按钮稳定性保护
+                setTimeout(() => {
+                    safeCall(protectDrawButton);
+                }, 1000);
+                
                 // 显示欢迎消息
                 setTimeout(() => {
                     if (statusIndicator) {
                         statusIndicator.show('🎉 彩票系统加载完成！', 'success', 3000);
                     }
                 }, 1000);
+                
+                // 🔥 定期检查按钮稳定性（每15秒）
+                setInterval(() => {
+                    safeCall(protectDrawButton);
+                }, 15000);
             } else {
                 console.error('彩票系统初始化失败');
                 if (statusIndicator) {
@@ -3290,7 +4978,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
         } catch (error) {
-            console.error('组件初始化错误:', error);
+
             alert('系统加载失败，请刷新页面重试');
         }
     }, 2500);
@@ -3359,12 +5047,28 @@ function startCountdown() {
                     <div class="next-draw-info">下次开奖时间：${nextDraw.toLocaleString()}</div>
                 `;
                 
-                // 最后10秒时添加紧急提示
+                // 🔥 修复：最后10秒时添加紧急提示（严格限制在倒计时区域）
                 if (diff <= 10000) {
-                    countdownElement.style.animation = 'urgentBlink 0.5s infinite';
+                    // 只对倒计时显示区域添加紧急状态
+                    const countdownDisplay = countdownElement.querySelector('.countdown-display');
+                    if (countdownDisplay) {
+                        countdownDisplay.classList.add('countdown-urgent');
+                    }
                     countdownElement.style.color = '#e74c3c';
+                    
+                    // 🔥 确保按钮区域不受影响
+                    const drawAction = document.querySelector('.draw-action');
+                    if (drawAction) {
+                        drawAction.style.animation = 'none';
+                        drawAction.style.transform = 'none';
+                    }
                 } else {
-                    countdownElement.style.animation = '';
+                    // 移除紧急状态
+                    const countdownDisplay = countdownElement.querySelector('.countdown-display');
+                    if (countdownDisplay) {
+                        countdownDisplay.classList.remove('countdown-urgent');
+                    }
+                    countdownElement.classList.remove('countdown-urgent');
                     countdownElement.style.color = '';
                 }
             } else {
@@ -3373,7 +5077,7 @@ function startCountdown() {
                 `;
             }
         } catch (error) {
-            console.error('更新倒计时错误:', error);
+
         }
     }
     
@@ -3465,6 +5169,19 @@ function addAdditionalStyles() {
             50% { transform: scale(1.05); }
         }
         
+        @keyframes numberPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
         .check-result-item {
             background: white;
             border: 1px solid #e9ecef;
@@ -3533,13 +5250,788 @@ function addAdditionalStyles() {
         .ticket-check-item.lost .ticket-result {
             color: #e74c3c;
         }
+        
+        .error-text {
+            color: #e74c3c;
+            font-style: italic;
+            font-size: 0.9em;
+        }
     `;
     document.head.appendChild(style);
 }
 // 在文件末尾添加缺失的函数定义
 
+// 🔥 添加开奖动画效果
+function startDrawAnimation() {
+    // 🔥 防止重复执行
+    if (window.drawAnimationRunning) {
+        console.log('⚠️ 开奖动画正在运行中，忽略重复调用');
+        return;
+    }
+    
+    window.drawAnimationRunning = true;
+    console.log('🎬 开始增强版开奖动画');
+    
+    // 🔥 初始化全局开奖结果
+    window.currentDrawResult = {
+        type: currentDrawType,
+        period: getCurrentPeriod(currentDrawType),
+        drawTime: new Date().toLocaleString()
+    };
+    
+    console.log('🎯 初始化开奖结果对象:', window.currentDrawResult);
+    
+    // 创建开奖动画容器
+    const animationContainer = document.createElement('div');
+    animationContainer.id = 'drawAnimation';
+    animationContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(20, 40, 80, 0.95));
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        backdrop-filter: blur(10px);
+    `;
+    
+    animationContainer.innerHTML = `
+        <div class="draw-animation-content">
+            <h2 style="font-size: 36px; margin-bottom: 20px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                🎰 ${currentDrawType === 'doubleColor' ? '双色球' : '大乐透'} 开奖中
+            </h2>
+            <div class="stage-indicator" id="stageIndicator" style="
+                font-size: 20px; 
+                margin-bottom: 30px; 
+                text-align: center; 
+                color: #ffd700;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            ">🎲 正在准备号码池...</div>
+            
+            <!-- 号码池容器 -->
+            <div class="number-pool-container" style="
+                width: 600px;
+                height: 300px;
+                background: linear-gradient(135deg, #1e3c72, #2a5298);
+                border-radius: 20px;
+                position: relative;
+                margin: 20px auto;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
+                overflow: hidden;
+                border: 3px solid rgba(255, 215, 0, 0.3);
+            ">
+                <div class="pool-header" style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 40px;
+                    background: linear-gradient(90deg, #ffd700, #ffed4e);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    color: #1e3c72;
+                    font-size: 16px;
+                ">号码池</div>
+                
+                <div class="number-pool" id="numberPool" style="
+                    position: absolute;
+                    top: 50px;
+                    left: 20px;
+                    right: 20px;
+                    bottom: 50px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: flex-start;
+                    justify-content: center;
+                    gap: 8px;
+                    overflow: hidden;
+                    padding: 10px;
+                "></div>
+                
+                <div class="selected-area" id="selectedArea" style="
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    height: 60px;
+                    background: linear-gradient(90deg, rgba(231, 76, 60, 0.9), rgba(192, 57, 43, 0.9));
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    border-top: 2px solid rgba(255, 215, 0, 0.5);
+                ">
+                    <span style="color: white; font-weight: bold; margin-right: 10px;">已选号码:</span>
+            </div>
+            </div>
+            
+            <div class="draw-progress" style="
+                width: 500px;
+                height: 8px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+                margin: 30px auto 20px;
+                overflow: hidden;
+                border: 1px solid rgba(255, 215, 0, 0.3);
+            ">
+                <div class="progress-bar" id="progressBar" style="
+                    width: 0%;
+                    height: 100%;
+                    background: linear-gradient(90deg, #ffd700, #ff6b35);
+                    border-radius: 4px;
+                    transition: width 0.5s ease;
+                "></div>
+            </div>
+            
+            <p id="statusText" style="font-size: 18px; text-align: center; opacity: 0.9; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
+                正在初始化摇奖机...
+            </p>
+        </div>
+    `;
+    
+    document.body.appendChild(animationContainer);
+    
+    // 🔥 播放开场动画音效
+    audioManager.playSound(100, 0.3, 0.1);
+    setTimeout(() => audioManager.playSound(150, 0.25, 0.08), 200);
+    setTimeout(() => audioManager.playSound(200, 0.2, 0.06), 400);
+    
+    // 创建号码池并开始动画
+    setTimeout(() => {
+        createNumberPool();
+        startNumberPoolAnimation();
+    }, 500);
+    
+    // 添加必要的样式
+    addEnhancedDrawAnimationStyles();
+}
+
+// 🚀 性能优化：创建号码池（使用DocumentFragment和requestAnimationFrame）
+function createNumberPool() {
+    const pool = document.getElementById('numberPool');
+    if (!pool) return;
+    
+    let maxNumbers, ballColor;
+    if (currentDrawType === 'doubleColor') {
+        maxNumbers = 33;
+        ballColor = '#e74c3c'; // 双色球红球
+    } else {
+        maxNumbers = 35;
+        ballColor = '#e74c3c'; // 大乐透前区球也是红色
+    }
+    
+    // 使用DocumentFragment批量创建
+    const fragment = document.createDocumentFragment();
+    
+    // 分批创建，避免长任务
+    const batchSize = 10;
+    let currentBatch = 0;
+    
+    function createBatch() {
+        const start = currentBatch * batchSize + 1;
+        const end = Math.min((currentBatch + 1) * batchSize, maxNumbers);
+        
+        for (let i = start; i <= end; i++) {
+            const ball = document.createElement('div');
+            ball.className = 'pool-ball';
+            ball.dataset.number = i;
+            ball.style.cssText = `
+                width: 35px;
+                height: 35px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, ${ballColor}, ${ballColor}dd);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                animation: poolBallFloat ${Math.random() * 2 + 3}s ease-in-out infinite alternate;
+                transform: translateY(${Math.random() * 10}px);
+            `;
+            ball.textContent = String(i).padStart(2, '0');
+            fragment.appendChild(ball);
+        }
+        
+        currentBatch++;
+        
+        if (end < maxNumbers) {
+            // 使用requestAnimationFrame分批处理
+            requestAnimationFrame(createBatch);
+        } else {
+            // 最后一次性添加到DOM
+            pool.appendChild(fragment);
+        }
+    }
+    
+    // 开始分批创建
+    createBatch();
+}
+
+// 🔥 新增：开始号码池动画
+function startNumberPoolAnimation() {
+    const stageIndicator = document.getElementById('stageIndicator');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (!stageIndicator || !statusText || !progressBar) return;
+    
+    // 第一阶段：号码池滚动
+    stageIndicator.textContent = '🎲 号码池正在混合中...';
+    statusText.textContent = '正在打乱号码顺序...';
+    progressBar.style.width = '20%';
+    
+    startPoolMixing();
+    
+    // 第二阶段：开始选号
+    setTimeout(() => {
+        stageIndicator.textContent = '🎯 开始选择号码...';
+        statusText.textContent = '正在从号码池中选出号码...';
+        progressBar.style.width = '50%';
+        startNumberSelection();
+    }, 3000);
+}
+
+// 🔥 新增：号码池混合动画
+function startPoolMixing() {
+    const poolBalls = document.querySelectorAll('.pool-ball');
+    
+    // 🔥 播放号码池混合开始音效
+    audioManager.playSound(150, 0.3, 0.08);
+    setTimeout(() => audioManager.playSound(200, 0.2, 0.06), 100);
+    setTimeout(() => audioManager.playSound(250, 0.2, 0.06), 200);
+    
+    poolBalls.forEach((ball, index) => {
+        const delay = Math.random() * 1000;
+        setTimeout(() => {
+            ball.style.animation = `poolBallMix 0.8s ease-in-out infinite alternate`;
+            
+            // 🔥 为每个球添加轻微的混合音效
+            if (Math.random() < 0.3) { // 只有30%的球播放音效，避免太嘈杂
+                audioManager.playSound(180 + Math.random() * 100, 0.05, 0.03);
+            }
+        }, delay);
+    });
+    
+    // 🔥 持续播放混合过程中的背景音效
+    const mixingInterval = setInterval(() => {
+        audioManager.playSound(160 + Math.random() * 80, 0.08, 0.04);
+    }, 300);
+    
+    // 3秒后停止背景音效
+    setTimeout(() => {
+        clearInterval(mixingInterval);
+    }, 3000);
+}
+
+// 🔥 新增：开始号码选择过程
+function startNumberSelection() {
+    const poolBalls = document.querySelectorAll('.pool-ball');
+    const selectedArea = document.getElementById('selectedArea');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (!selectedArea || !progressBar) return;
+    
+    let requiredCount = currentDrawType === 'doubleColor' ? 6 : 5;
+    let selectedNumbers = [];
+    let selectionInterval;
+    let highlightCount = 0;
+    
+    // 高亮显示过程
+    selectionInterval = setInterval(() => {
+        // 清除之前的高亮
+        poolBalls.forEach(ball => {
+            ball.style.transform = 'scale(1)';
+            ball.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+        });
+        
+        // 随机高亮一些球
+        const randomBalls = Array.from(poolBalls)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, Math.min(8, poolBalls.length));
+            
+        randomBalls.forEach(ball => {
+            ball.style.transform = 'scale(1.2)';
+            ball.style.boxShadow = '0 4px 12px rgba(255, 215, 0, 0.8)';
+        });
+        
+        // 🔥 播放高亮音效
+        const frequency = 300 + Math.random() * 200; // 300-500Hz的随机频率
+        audioManager.playSound(frequency, 0.08, 0.05);
+        
+        highlightCount++;
+        
+        // 20次高亮后开始确定号码
+        if (highlightCount >= 20) {
+            clearInterval(selectionInterval);
+            
+            // 🔥 播放选择完成音效
+            audioManager.playSound(600, 0.2, 0.08);
+            setTimeout(() => audioManager.playSound(800, 0.15, 0.06), 200);
+            
+            confirmSelectedNumbers();
+        }
+    }, 150);
+    
+    // 确定选中的号码
+    function confirmSelectedNumbers() {
+        // 生成最终号码
+        const finalNumbers = generateRandomNumbers(
+            currentDrawType === 'doubleColor' ? 33 : 35, 
+            requiredCount
+        );
+        
+        // 🔥 初始化全局开奖结果对象
+        if (!window.currentDrawResult) {
+            window.currentDrawResult = {};
+        }
+        
+        // 🔥 保存红球/前区球号码到全局结果
+        if (currentDrawType === 'doubleColor') {
+            window.currentDrawResult.red = finalNumbers;
+            window.currentDrawResult.numbers = finalNumbers; // 兼容原有逻辑
+        } else {
+            window.currentDrawResult.front = finalNumbers;
+            window.currentDrawResult.frontNumbers = finalNumbers; // 兼容原有逻辑
+        }
+        
+        console.log('🎯 已保存号码到全局结果:', currentDrawType === 'doubleColor' ? '红球' : '前区球', finalNumbers);
+        
+        finalNumbers.forEach((num, index) => {
+            setTimeout(() => {
+                selectNumberFromPool(num, selectedArea);
+                
+                // 更新进度
+                const progress = 50 + (index + 1) / requiredCount * 30;
+                progressBar.style.width = `${progress}%`;
+                
+                if (index === finalNumbers.length - 1) {
+                    // 红球/前区球选择完成
+                    setTimeout(() => {
+                        if (currentDrawType === 'doubleColor') {
+                            startBlueballSelection();
+                        } else {
+                            startBackballSelection();
+                        }
+                    }, 1000);
+                }
+            }, index * 800);
+        });
+    }
+}
+
+// 🔥 新增：从号码池中选择号码
+function selectNumberFromPool(number, selectedArea) {
+    const poolBall = document.querySelector(`.pool-ball[data-number="${number}"]`);
+    if (!poolBall) return;
+    
+    // 高亮选中的球
+    poolBall.style.animation = 'ballSelected 0.8s ease-out';
+    poolBall.style.transform = 'scale(1.5)';
+    poolBall.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.9)';
+    
+    // 播放选中音效
+    audioManager.playSound(800, 0.1, 0.1);
+    
+    // 创建选中区域的球
+    setTimeout(() => {
+        const selectedBall = poolBall.cloneNode(true);
+        // 保持原有球的颜色，只是稍微调整尺寸
+        selectedBall.style.cssText = `
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: ${poolBall.style.background || 'linear-gradient(135deg, #e74c3c, #c0392b)'};
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.6);
+            animation: ballAppearInSelected 0.6s ease-out;
+            margin: 0 5px;
+        `;
+        selectedArea.appendChild(selectedBall);
+        
+        // 移除原球（淡出效果）
+        poolBall.style.opacity = '0.3';
+        poolBall.style.transform = 'scale(0.8)';
+    }, 400);
+}
+
+// 🔥 新增：蓝球选择过程
+function startBlueballSelection() {
+    const stageIndicator = document.getElementById('stageIndicator');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (!stageIndicator || !statusText || !progressBar) return;
+    
+    stageIndicator.textContent = '🔵 正在选择蓝球...';
+    statusText.textContent = '从16个蓝球中选择1个...';
+    progressBar.style.width = '85%';
+    
+    // 🔥 播放蓝球选择开始音效
+    audioManager.playSound(350, 0.2, 0.08);
+    setTimeout(() => audioManager.playSound(450, 0.15, 0.06), 150);
+    
+    // 重新创建蓝球号码池
+    createBlueBallPool();
+    
+    // 🔥 蓝球混合音效
+    const blueMixingInterval = setInterval(() => {
+        audioManager.playSound(400 + Math.random() * 100, 0.06, 0.04);
+    }, 200);
+    
+    // 2秒后选择蓝球
+    setTimeout(() => {
+        clearInterval(blueMixingInterval);
+        
+        // 🔥 播放蓝球确定前音效
+        audioManager.playSound(500, 0.15, 0.07);
+        setTimeout(() => audioManager.playSound(600, 0.12, 0.06), 100);
+        
+        const blueNumber = Math.floor(Math.random() * 16) + 1;
+        
+        // 🔥 保存蓝球号码到全局结果
+        if (!window.currentDrawResult) {
+            window.currentDrawResult = {};
+        }
+        window.currentDrawResult.blue = blueNumber;
+        window.currentDrawResult.blueNumber = blueNumber; // 兼容原有逻辑
+        
+        console.log('🔵 已保存蓝球号码到全局结果:', blueNumber);
+        
+        selectBlueBall(blueNumber);
+        
+        setTimeout(() => {
+            finishDrawAnimation();
+        }, 2000);
+    }, 2000);
+}
+
+// 🔥 新增：创建蓝球池
+function createBlueBallPool() {
+    const pool = document.getElementById('numberPool');
+    if (!pool) return;
+    
+    // 清空原有球
+    pool.innerHTML = '';
+    
+    // 创建16个蓝球
+    for (let i = 1; i <= 16; i++) {
+        const ball = document.createElement('div');
+        ball.className = 'blue-pool-ball';
+        ball.dataset.number = i;
+        ball.style.cssText = `
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            animation: poolBallFloat ${Math.random() * 2 + 3}s ease-in-out infinite alternate;
+            transform: translateY(${Math.random() * 10}px);
+        `;
+        ball.textContent = String(i).padStart(2, '0');
+        pool.appendChild(ball);
+    }
+}
+
+// 🔥 新增：选择蓝球
+function selectBlueBall(number) {
+    const selectedArea = document.getElementById('selectedArea');
+    if (!selectedArea) return;
+    
+    const blueBall = document.querySelector(`.blue-pool-ball[data-number="${number}"]`);
+    if (blueBall) {
+        blueBall.style.animation = 'ballSelected 0.8s ease-out';
+        blueBall.style.transform = 'scale(1.5)';
+        blueBall.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.9)';
+    }
+    
+    // 播放选中音效
+    audioManager.playSound(1000, 0.1, 0.1);
+    
+    // 在选中区域添加蓝球
+    setTimeout(() => {
+        const selectedBall = document.createElement('div');
+        selectedBall.style.cssText = `
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.6);
+            animation: ballAppearInSelected 0.6s ease-out;
+            margin: 0 5px;
+        `;
+        selectedBall.textContent = String(number).padStart(2, '0');
+        selectedArea.appendChild(selectedBall);
+    }, 400);
+}
+
+// 🔥 新增：后区球选择（大乐透）
+function startBackballSelection() {
+    const stageIndicator = document.getElementById('stageIndicator');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (!stageIndicator || !statusText || !progressBar) return;
+    
+    stageIndicator.textContent = '🟡 正在选择后区球...';
+    statusText.textContent = '从12个后区球中选择2个...';
+    progressBar.style.width = '85%';
+    
+    // 🔥 播放后区球选择开始音效
+    audioManager.playSound(320, 0.2, 0.08);
+    setTimeout(() => audioManager.playSound(380, 0.15, 0.06), 150);
+    
+    // 重新创建后区球号码池
+    createBackBallPool();
+    
+    // 🔥 后区球混合音效
+    const backMixingInterval = setInterval(() => {
+        audioManager.playSound(350 + Math.random() * 80, 0.06, 0.04);
+    }, 250);
+    
+    // 2秒后选择后区球
+    setTimeout(() => {
+        clearInterval(backMixingInterval);
+        
+        // 🔥 播放后区球确定前音效
+        audioManager.playSound(480, 0.15, 0.07);
+        setTimeout(() => audioManager.playSound(560, 0.12, 0.06), 100);
+        
+        const backNumbers = generateRandomNumbers(12, 2);
+        
+        // 🔥 保存后区球号码到全局结果
+        if (!window.currentDrawResult) {
+            window.currentDrawResult = {};
+        }
+        window.currentDrawResult.back = backNumbers;
+        window.currentDrawResult.backNumbers = backNumbers; // 兼容原有逻辑
+        
+        console.log('🟡 已保存后区球号码到全局结果:', backNumbers);
+        
+        backNumbers.forEach((num, index) => {
+            setTimeout(() => {
+                selectBackBall(num);
+                if (index === backNumbers.length - 1) {
+                    setTimeout(() => {
+                        finishDrawAnimation();
+                    }, 2000);
+                }
+            }, index * 1000);
+        });
+    }, 2000);
+}
+
+// 🔥 新增：创建后区球池
+function createBackBallPool() {
+    const pool = document.getElementById('numberPool');
+    if (!pool) return;
+    
+    // 清空原有球
+    pool.innerHTML = '';
+    
+    // 创建12个后区球
+    for (let i = 1; i <= 12; i++) {
+        const ball = document.createElement('div');
+        ball.className = 'back-pool-ball';
+        ball.dataset.number = i;
+        ball.style.cssText = `
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            animation: poolBallFloat ${Math.random() * 2 + 3}s ease-in-out infinite alternate;
+            transform: translateY(${Math.random() * 10}px);
+        `;
+        ball.textContent = String(i).padStart(2, '0');
+        pool.appendChild(ball);
+    }
+}
+
+// 🔥 新增：选择后区球
+function selectBackBall(number) {
+    const selectedArea = document.getElementById('selectedArea');
+    if (!selectedArea) return;
+    
+    const backBall = document.querySelector(`.back-pool-ball[data-number="${number}"]`);
+    if (backBall) {
+        backBall.style.animation = 'ballSelected 0.8s ease-out';
+        backBall.style.transform = 'scale(1.5)';
+        backBall.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.9)';
+    }
+    
+    // 🔥 播放后区球选中音效（更高频率，区别于前区球）
+    audioManager.playSound(900, 0.12, 0.08);
+    setTimeout(() => audioManager.playSound(1100, 0.08, 0.06), 100);
+    
+    // 在选中区域添加后区球
+    setTimeout(() => {
+        const selectedBall = document.createElement('div');
+        selectedBall.style.cssText = `
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.6);
+            animation: ballAppearInSelected 0.6s ease-out;
+            margin: 0 5px;
+        `;
+        selectedBall.textContent = String(number).padStart(2, '0');
+        selectedArea.appendChild(selectedBall);
+    }, 400);
+}
+
+// 🔥 新增：完成开奖动画
+function finishDrawAnimation() {
+    const stageIndicator = document.getElementById('stageIndicator');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (stageIndicator) stageIndicator.textContent = '🎉 开奖完成！';
+    if (statusText) statusText.textContent = '号码选择完毕，即将显示结果...';
+    if (progressBar) progressBar.style.width = '100%';
+    
+    // 🔥 确保数据完整性
+    if (window.currentDrawResult) {
+        console.log('✅ 开奖动画完成，最终结果数据:', window.currentDrawResult);
+        
+        // 添加兼容字段
+        if (currentDrawType === 'doubleColor') {
+            if (window.currentDrawResult.red && window.currentDrawResult.blue) {
+                window.currentDrawResult.numbers = window.currentDrawResult.red;
+                window.currentDrawResult.blueNumber = window.currentDrawResult.blue;
+            }
+        } else {
+            if (window.currentDrawResult.front && window.currentDrawResult.back) {
+                window.currentDrawResult.frontNumbers = window.currentDrawResult.front;
+                window.currentDrawResult.backNumbers = window.currentDrawResult.back;
+            }
+        }
+    }
+    
+    // 播放完成音效
+    audioManager.playSound(1200, 0.2, 0.5);
+    
+    // 5秒后关闭动画并继续到结果显示
+    setTimeout(() => {
+        const animationContainer = document.getElementById('drawAnimation');
+        if (animationContainer) {
+            animationContainer.style.opacity = '0';
+            animationContainer.style.transition = 'opacity 0.5s ease';
+            
+            setTimeout(() => {
+                if (animationContainer.parentNode) {
+                    animationContainer.parentNode.removeChild(animationContainer);
+                }
+                
+                // 🔥 动画完成后直接显示最终结果
+                console.log('🎯 动画结束，继续显示开奖结果...');
+                
+                // 🔥 重置动画运行标志
+                window.drawAnimationRunning = false;
+                
+                showFinalDrawResults();
+            }, 500);
+        }
+    }, 5000);
+}
+
+// 🔥 新增：添加增强版动画样式
+function addEnhancedDrawAnimationStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes poolBallFloat {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-10px) rotate(5deg); }
+        }
+        
+        @keyframes poolBallMix {
+            0% { transform: translateY(0px) rotate(0deg) scale(1); }
+            50% { transform: translateY(-15px) rotate(180deg) scale(1.1); }
+            100% { transform: translateY(0px) rotate(360deg) scale(1); }
+        }
+        
+        @keyframes ballSelected {
+            0% { transform: scale(1); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+            50% { transform: scale(1.8); box-shadow: 0 8px 25px rgba(255, 215, 0, 1); }
+            100% { transform: scale(1.5); box-shadow: 0 6px 20px rgba(255, 215, 0, 0.9); }
+        }
+        
+        @keyframes ballAppearInSelected {
+            0% { transform: scale(0) rotate(180deg); opacity: 0; }
+            50% { transform: scale(1.3) rotate(90deg); opacity: 0.8; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// 创建滚动球效果
+function createRollingBalls() {
+    const ballsContainer = document.getElementById('machineBalls');
+    if (!ballsContainer) return;
+    
+    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
+    
+    for (let i = 0; i < 20; i++) {
+        const ball = document.createElement('div');
+        ball.style.cssText = `
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            animation: ballBounce ${0.5 + Math.random() * 1}s ease-in-out infinite alternate;
+            animation-delay: ${Math.random() * 0.5}s;
+        `;
+        ballsContainer.appendChild(ball);
+    }
+}
+
 // 开奖系统函数
 function startDraw() {
+    console.log('🎲 开始开奖流程');
+    
     const drawBtn = document.querySelector('.btn-draw');
     if (drawBtn) {
         drawBtn.disabled = true;
@@ -3549,15 +6041,14 @@ function startDraw() {
     // 播放开奖前音效
     playDrawStartSound();
     
+    // 🔥 添加开奖动画
+    startDrawAnimation();
+    
     // 显示摇奖机动画
     showDrawMachine();
     
-    // 开始真实的摇奖过程
-    if (currentDrawType === 'doubleColor') {
-        performDoubleColorDraw();
-    } else {
-        performDaletouDraw();
-    }
+    // 🔥 不再执行原有开奖逻辑，新动画会直接处理所有选号过程
+    // 原有的 performDoubleColorDraw() 和 performDaletouDraw() 已被新动画流程替代
 }
 
 // 显示摇奖机动画
@@ -3668,46 +6159,13 @@ function addDrawMachineStyles() {
     document.head.appendChild(style);
 }
 
-// 执行双色球开奖
+// 🔥 旧的开奖函数已被新的动画系统替代，这里保留空函数以防兼容性问题
 function performDoubleColorDraw() {
-    // 第一阶段：显示旋转的球
-    showSpinningBalls('doubleColor');
-    
-    // 第二阶段：逐个确定红球（6秒）
-    setTimeout(() => {
-        drawRedBalls();
-    }, 2000);
-    
-    // 第三阶段：确定蓝球（2秒后）
-    setTimeout(() => {
-        drawBlueBall();
-    }, 8000);
-    
-    // 第四阶段：显示最终结果
-    setTimeout(() => {
-        showFinalDrawResults();
-    }, 10000);
+    console.log('⚠️ 旧开奖函数被调用，已被新动画系统替代');
 }
 
-// 执行大乐透开奖
 function performDaletouDraw() {
-    // 第一阶段：显示旋转的球
-    showSpinningBalls('daletou');
-    
-    // 第二阶段：逐个确定前区球（7秒）
-    setTimeout(() => {
-        drawFrontBalls();
-    }, 2000);
-    
-    // 第三阶段：确定后区球（2秒后）
-    setTimeout(() => {
-        drawBackBalls();
-    }, 9000);
-    
-    // 第四阶段：显示最终结果
-    setTimeout(() => {
-        showFinalDrawResults();
-    }, 12000);
+    console.log('⚠️ 旧开奖函数被调用，已被新动画系统替代');
 }
 
 // 显示旋转的球
@@ -3751,280 +6209,160 @@ function getRandomBallColor() {
 
 // 摇出红球
 function drawRedBalls() {
-    const chamberLabel = document.querySelector('.chamber-label');
-    const finalResults = document.getElementById('finalResults');
-    
-    if (!chamberLabel || !finalResults) return;
-    
-    chamberLabel.textContent = '🔴 正在摇出红球...';
-    
-    const redNumbers = generateRandomNumbers(33, 6);
-    
-    // 存储当前开奖结果
-    if (!window.currentDrawResult) {
-        window.currentDrawResult = {};
-    }
-    window.currentDrawResult.red = redNumbers;
-    
-    redNumbers.forEach((num, index) => {
-        setTimeout(() => {
-            const ball = document.createElement('div');
-            ball.className = 'final-ball';
-            ball.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
-            ball.style.cssText += `
-                width: 45px;
-                height: 45px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 1.1em;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-                animation: ballAppear 0.8s ease-out;
-            `;
-            ball.textContent = num;
-            finalResults.appendChild(ball);
-            
-            // 播放球确定音效
-            playBallConfirmSound();
-            
-            // 更新摇奖机显示
-            if (index === redNumbers.length - 1) {
-                chamberLabel.textContent = '🔴 红球摇奖完成！';
-            }
-        }, index * 800);
-    });
+    console.log('⚠️ 旧的红球生成函数被调用，已被新动画系统替代');
 }
 
 // 摇出蓝球
 function drawBlueBall() {
-    const chamberLabel = document.querySelector('.chamber-label');
-    const finalResults = document.getElementById('finalResults');
-    
-    if (!chamberLabel || !finalResults) return;
-    
-    chamberLabel.textContent = '🔵 正在摇出蓝球...';
-    
-    const blueNumber = Math.floor(Math.random() * 16) + 1;
-    window.currentDrawResult.blue = blueNumber;
-    
-    setTimeout(() => {
-        // 添加分隔符
-        const separator = document.createElement('div');
-        separator.className = 'separator';
-        separator.textContent = '|';
-        separator.style.cssText = `
-            font-size: 2em;
-            color: white;
-            margin: 0 10px;
-            font-weight: bold;
-        `;
-        finalResults.appendChild(separator);
-        
-        // 添加蓝球
-        const ball = document.createElement('div');
-        ball.className = 'final-ball';
-        ball.style.background = 'linear-gradient(45deg, #3498db, #2980b9)';
-        ball.style.cssText += `
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1.1em;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            animation: ballAppear 0.8s ease-out;
-        `;
-        ball.textContent = blueNumber;
-        finalResults.appendChild(ball);
-        
-        // 播放蓝球确定音效
-        playBallConfirmSound();
-        
-        chamberLabel.textContent = '🔵 蓝球摇奖完成！';
-    }, 500);
+    console.log('⚠️ 旧的蓝球生成函数被调用，已被新动画系统替代');
 }
 
 // 摇出前区球
 function drawFrontBalls() {
-    const chamberLabel = document.querySelector('.chamber-label');
-    const finalResults = document.getElementById('finalResults');
-    
-    if (!chamberLabel || !finalResults) return;
-    
-    chamberLabel.textContent = '🟡 正在摇出前区球...';
-    
-    const frontNumbers = generateRandomNumbers(35, 5);
-    
-    if (!window.currentDrawResult) {
-        window.currentDrawResult = {};
-    }
-    window.currentDrawResult.front = frontNumbers;
-    
-    frontNumbers.forEach((num, index) => {
-        setTimeout(() => {
-            const ball = document.createElement('div');
-            ball.className = 'final-ball';
-            ball.style.background = 'linear-gradient(45deg, #f39c12, #e67e22)';
-            ball.style.cssText += `
-                width: 45px;
-                height: 45px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 1.1em;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-                animation: ballAppear 0.8s ease-out;
-            `;
-            ball.textContent = num;
-            finalResults.appendChild(ball);
-            
-            playBallConfirmSound();
-            
-            if (index === frontNumbers.length - 1) {
-                chamberLabel.textContent = '🟡 前区摇奖完成！';
-            }
-        }, index * 700);
-    });
+    console.log('⚠️ 旧的前区球生成函数被调用，已被新动画系统替代');
 }
 
 // 摇出后区球
 function drawBackBalls() {
-    const chamberLabel = document.querySelector('.chamber-label');
-    const finalResults = document.getElementById('finalResults');
-    
-    if (!chamberLabel || !finalResults) return;
-    
-    chamberLabel.textContent = '🟣 正在摇出后区球...';
-    
-    const backNumbers = generateRandomNumbers(12, 2);
-    window.currentDrawResult.back = backNumbers;
-    
-    // 添加分隔符
-    setTimeout(() => {
-        const separator = document.createElement('div');
-        separator.className = 'separator';
-        separator.textContent = '|';
-        separator.style.cssText = `
-            font-size: 2em;
-            color: white;
-            margin: 0 10px;
-            font-weight: bold;
-        `;
-        finalResults.appendChild(separator);
-    }, 200);
-    
-    backNumbers.forEach((num, index) => {
-        setTimeout(() => {
-            const ball = document.createElement('div');
-            ball.className = 'final-ball';
-            ball.style.background = 'linear-gradient(45deg, #9b59b6, #8e44ad)';
-            ball.style.cssText += `
-                width: 45px;
-                height: 45px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 1.1em;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-                animation: ballAppear 0.8s ease-out;
-            `;
-            ball.textContent = num;
-            finalResults.appendChild(ball);
-            
-            playBallConfirmSound();
-            
-            if (index === backNumbers.length - 1) {
-                chamberLabel.textContent = '🟣 后区摇奖完成！';
-            }
-        }, 500 + index * 800);
-    });
+    console.log('⚠️ 旧的后区球生成函数被调用，已被新动画系统替代');
 }
 
 // 显示最终开奖结果
 function showFinalDrawResults() {
-    const chamberLabel = document.querySelector('.chamber-label');
-    if (chamberLabel) {
-        chamberLabel.textContent = '🎉 开奖完成！';
-    }
-    
-    // 清除旋转的球
-    const spinningBalls = document.getElementById('spinningBalls');
-    if (spinningBalls) {
-        spinningBalls.innerHTML = '';
-    }
-    
-    // 保存开奖结果
-    const result = {
-        type: currentDrawType,
-        period: getCurrentPeriod(currentDrawType),
-        drawTime: new Date().toLocaleString(),
-        ...window.currentDrawResult
-    };
-    
-    drawResults[currentDrawType].push(result);
-    
-    // 播放开奖完成音效
-    playDrawCompleteSound();
-    
-    // 显示庆祝动画
-    showCelebrationAnimation();
-    
-    // 自动检查中奖
-    setTimeout(() => {
-        checkWinningTickets(result);
-        updateDrawHistory();
+    try {
+        console.log('🎉 显示最终开奖结果');
         
-        // 恢复开奖按钮
+        // 🔥 修复：确保window.currentDrawResult存在且有效
+        if (!window.currentDrawResult || typeof window.currentDrawResult !== 'object') {
+            console.error('❌ 开奖结果数据无效，使用默认数据');
+            window.currentDrawResult = {
+                numbers: [],
+                blueNumber: null,
+                frontNumbers: [],
+                backNumbers: [],
+                type: currentDrawType || 'doubleColor'
+            };
+        }
+        
+        // 确保numbers数组存在
+        if (!Array.isArray(window.currentDrawResult.numbers)) {
+            window.currentDrawResult.numbers = [];
+        }
+        
+        const chamberLabel = document.querySelector('.chamber-label');
+        if (chamberLabel) {
+            chamberLabel.textContent = '🎉 开奖完成！';
+        }
+        
+        // 清除旋转的球
+        const spinningBalls = document.getElementById('spinningBalls');
+        if (spinningBalls) {
+            spinningBalls.innerHTML = '';
+        }
+        
+        // 保存开奖结果
+        const result = {
+            type: currentDrawType,
+            period: getCurrentPeriod(currentDrawType),
+            drawTime: new Date().toLocaleString(),
+            ...window.currentDrawResult
+        };
+        
+        drawResults[currentDrawType].push(result);
+        
+        // 播放开奖完成音效
+        playDrawCompleteSound();
+        
+        // 显示庆祝动画
+        showCelebrationAnimation();
+        
+        // 自动检查中奖
+        setTimeout(() => {
+            checkWinningTickets(result);
+            updateDrawHistory();
+            
+            // 恢复开奖按钮
+            const drawBtn = document.querySelector('.btn-draw');
+            if (drawBtn) {
+                drawBtn.disabled = false;
+                drawBtn.textContent = '🎰 开始摇奖';
+            }
+        }, 3000);
+        
+        // 保存数据
+        saveData();
+        
+    } catch (error) {
+        console.error('❌ 显示开奖结果失败:', error);
+        // 显示错误提示
+        const chamberLabel = document.querySelector('.chamber-label');
+        if (chamberLabel) {
+            chamberLabel.textContent = '❌ 开奖失败，请重试';
+        }
+        
+        // 🔥 确保在错误情况下也能恢复按钮和移除动画
         const drawBtn = document.querySelector('.btn-draw');
         if (drawBtn) {
             drawBtn.disabled = false;
             drawBtn.textContent = '🎰 开始摇奖';
         }
-    }, 3000);
-    
-    // 保存数据
-    saveData();
+        
+        // 强制移除动画覆盖层
+        const animationContainer = document.getElementById('drawAnimation');
+        if (animationContainer && animationContainer.parentNode) {
+            animationContainer.parentNode.removeChild(animationContainer);
+        }
+        
+        // 🔥 重置动画运行标志
+        window.drawAnimationRunning = false;
+    }
 }
 
 // 显示庆祝动画
 function showCelebrationAnimation() {
+    console.log('🎊 开始庆祝动画');
+    
     // 创建彩带效果
-    for (let i = 0; i < 20; i++) {
-        setTimeout(() => {
-            createConfetti();
-        }, i * 100);
+    createConfetti();
+    
+    // 播放庆祝音效
+    if (typeof playWinningSound === 'function') {
+        playWinningSound();
     }
+    
+    // 添加页面震动效果
+    document.body.style.animation = 'celebration 1s ease-in-out';
+    setTimeout(() => {
+        document.body.style.animation = '';
+    }, 1000);
 }
 
 // 创建彩带
 function createConfetti() {
-    const confetti = document.createElement('div');
-    confetti.style.cssText = `
-        position: fixed;
-        top: -10px;
-        left: ${Math.random() * 100}%;
-        width: 10px;
-        height: 10px;
-        background: ${getRandomBallColor()};
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 1000;
-        animation: confettiFall 3s linear forwards;
-    `;
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'];
     
-    document.body.appendChild(confetti);
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.style.cssText = `
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            left: ${Math.random() * 100}%;
+            top: -10px;
+            z-index: 10000;
+            border-radius: 50%;
+            animation: confettiFall ${2 + Math.random() * 3}s linear forwards;
+        `;
+        
+        document.body.appendChild(confetti);
+        
+        setTimeout(() => {
+            if (confetti.parentNode) {
+                confetti.parentNode.removeChild(confetti);
+            }
+        }, 5000);
+    }
     
     // 添加下落动画
     if (!document.getElementById('confettiStyles')) {
@@ -4042,125 +6380,422 @@ function createConfetti() {
                 }
             }
             @keyframes ballAppear {
-                0% {
-                    opacity: 0;
-                    transform: scale(0) rotate(180deg);
-                }
-                50% {
-                    opacity: 1;
-                    transform: scale(1.3) rotate(90deg);
-                }
-                100% {
-                    opacity: 1;
-                    transform: scale(1) rotate(0deg);
-                }
+            0% {
+                opacity: 0;
+                transform: scale(0) rotate(180deg);
             }
+            50% {
+                opacity: 1;
+                transform: scale(1.3) rotate(90deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        @keyframes celebration {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        @keyframes machineRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes progressFill {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        @keyframes ballBounce {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-10px); }
+        }
         `;
         document.head.appendChild(style);
     }
-    
-    setTimeout(() => {
-        confetti.remove();
-    }, 3000);
 }
 
-// 更新奖金表
-function updatePrizeTable() {
-    const tbody = document.getElementById('prizeTableBody');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    const config = prizeConfig[currentDrawType];
-    const levels = {};
-    
-    // 按奖级分组
-    Object.keys(config).forEach(key => {
-        const prize = config[key];
-        if (!levels[prize.level]) {
-            levels[prize.level] = {
-                name: prize.name,
-                conditions: [],
-                amount: prize.amount
-            };
-        }
-        levels[prize.level].conditions.push(key);
-    });
-    
-    // 按奖级排序并显示
-    Object.keys(levels).sort((a, b) => a - b).forEach(level => {
-        const prize = levels[level];
-        const row = document.createElement('tr');
-        
-        // 格式化中奖条件
-        const conditions = prize.conditions.map(condition => {
-            const [main, special] = condition.split('-');
-            if (currentDrawType === 'doubleColor') {
-                return `${main}红+${special}蓝`;
-            } else {
-                return `${main}前+${special}后`;
-            }
-        }).join(' 或 ');
-        
-        row.innerHTML = `
-            <td>${prize.name}</td>
-            <td>${conditions}</td>
-            <td>¥${prize.amount.toLocaleString()}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// 检查所有彩票中奖情况
+// 🔥 重新设计：检查所有彩票中奖情况
 function checkAllTickets() {
-    const resultsContainer = document.getElementById('winningResults');
-    if (!resultsContainer) return;
-    
-    const groupedTickets = {};
-    userTickets.forEach(ticket => {
-        const key = `${ticket.lotteryType}-${ticket.period}`;
-        if (!groupedTickets[key]) {
-            groupedTickets[key] = [];
+    // 更新待开奖彩票显示
+    updatePendingTicketsDisplay();
+    // 更新中奖彩票显示
+    updateWinningTicketsDisplay();
+}
+
+// 🔥 新增：添加示例大乐透历史记录（用于测试）
+function addSampleDaletouHistory() {
+    if (drawResults.daletou.length === 0) {
+        console.log('🎯 添加示例大乐透开奖记录');
+        
+        const sampleResults = [
+            {
+                type: 'daletou',
+                period: '2025096',
+                drawTime: '2025/1/19 20:30:00',
+                timestamp: new Date('2025/1/19 20:30:00').getTime(),
+                front: [3, 11, 19, 25, 33],
+                frontNumbers: [3, 11, 19, 25, 33],
+                back: [2, 9],
+                backNumbers: [2, 9]
+            },
+            {
+                type: 'daletou',
+                period: '2025095',
+                drawTime: '2025/1/17 20:30:00',
+                timestamp: new Date('2025/1/17 20:30:00').getTime(),
+                front: [5, 12, 18, 22, 31],
+                frontNumbers: [5, 12, 18, 22, 31],
+                back: [4, 11],
+                backNumbers: [4, 11]
+            },
+            {
+                type: 'daletou',
+                period: '2025094',
+                drawTime: '2025/1/15 20:30:00',
+                timestamp: new Date('2025/1/15 20:30:00').getTime(),
+                front: [1, 8, 16, 27, 35],
+                frontNumbers: [1, 8, 16, 27, 35],
+                back: [6, 10],
+                backNumbers: [6, 10]
+            }
+        ];
+        
+        drawResults.daletou = sampleResults;
+        saveData();
+        console.log('✅ 示例大乐透记录已添加');
+        
+        // 🔥 如果当前在历史页面且显示大乐透，立即刷新显示
+        const currentTab = document.querySelector('.tab-content.active');
+        if (currentTab && currentTab.id === 'history') {
+            const activeHistoryBtn = document.querySelector('.history-type-btn.active');
+            if (activeHistoryBtn && activeHistoryBtn.textContent.includes('大乐透')) {
+                setTimeout(() => loadHistoryData('daletou'), 100);
+            }
         }
-        groupedTickets[key].push(ticket);
-    });
+    }
+}
+
+// 🔥 新增：添加示例中奖记录（用于演示）
+function addSampleWinningTickets() {
+    // 检查是否已有中奖记录
+    const existingWinningTickets = userTickets.filter(t => t.status === 'won' || t.status === 'claimed');
     
-    if (Object.keys(groupedTickets).length === 0) {
-        resultsContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d;">暂无投注记录</p>';
+    if (existingWinningTickets.length === 0) {
+        console.log('🎯 添加示例中奖记录');
+        
+        const sampleWinningTickets = [
+            {
+                id: 'sample_won_1',
+                lotteryType: 'doubleColor',
+                type: 'doubleColor',
+                period: '2025097',
+                purchaseTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1天前
+                cost: 2,
+                status: 'won', // 未兑奖
+                numbers: [3, 11, 19, 25, 33, 35],
+                red: [3, 11, 19, 25, 33, 35],
+                blueNumber: 7,
+                blue: 7,
+                prizeLevel: '五等奖',
+                prizeAmount: 10,
+                prizeName: '五等奖'
+            },
+            {
+                id: 'sample_won_2',
+                lotteryType: 'doubleColor',
+                type: 'doubleColor',
+                period: '2025096',
+                purchaseTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3天前
+                cost: 2,
+                status: 'claimed', // 已兑奖
+                claimed: true,
+                claimTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                numbers: [5, 12, 18, 22, 31, 35],
+                red: [5, 12, 18, 22, 31, 35],
+                blueNumber: 9,
+                blue: 9,
+                prizeLevel: '六等奖',
+                prizeAmount: 5,
+                prizeName: '六等奖'
+            },
+            {
+                id: 'sample_won_3',
+                lotteryType: 'daletou',
+                type: 'daletou',
+                period: '2025095',
+                purchaseTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5天前
+                cost: 2,
+                status: 'won', // 未兑奖
+                frontNumbers: [1, 8, 16, 27, 35],
+                front: [1, 8, 16, 27, 35],
+                backNumbers: [6, 10],
+                back: [6, 10],
+                prizeLevel: '四等奖',
+                prizeAmount: 200,
+                prizeName: '四等奖'
+            }
+        ];
+        
+        // 添加到用户票据
+        userTickets.push(...sampleWinningTickets);
+        
+        // 更新统计
+        stats.totalWins += sampleWinningTickets.length;
+        stats.totalWinnings += sampleWinningTickets.reduce((sum, t) => sum + t.prizeAmount, 0);
+        
+        saveData();
+        console.log('✅ 示例中奖记录已添加');
+        
+        // 🔥 如果当前在中奖查询页面，立即刷新显示
+        const currentTab = document.querySelector('.tab-content.active');
+        if (currentTab && currentTab.id === 'check') {
+            setTimeout(() => {
+                updatePendingTicketsDisplay();
+                updateWinningTicketsDisplay();
+            }, 100);
+        }
+    }
+}
+
+// 🔥 新增：更新待开奖彩票显示
+function updatePendingTicketsDisplay() {
+    const container = document.getElementById('pendingTickets');
+    if (!container) return;
+    
+    // 获取待开奖的彩票（状态为waiting）
+    const pendingTickets = userTickets.filter(ticket => ticket.status === 'waiting');
+    
+    if (pendingTickets.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 30px;">暂无待开奖彩票</p>';
         return;
     }
     
-    resultsContainer.innerHTML = Object.keys(groupedTickets).map(key => {
-        const tickets = groupedTickets[key];
-        const [type, period] = key.split('-');
-        const winningTickets = tickets.filter(t => t.status === 'won' || t.status === 'claimed');
-        const totalPrize = winningTickets.reduce((sum, t) => sum + (t.prizeAmount || 0), 0);
+    // 按购买时间倒序排列，最新的在前
+    const sortedTickets = pendingTickets.sort((a, b) => new Date(b.purchaseTime) - new Date(a.purchaseTime));
+    
+    container.innerHTML = sortedTickets.map(ticket => `
+        <div class="pending-ticket-item">
+            <div class="pending-ticket-header">
+                <span class="pending-ticket-type">${ticket.lotteryType === 'doubleColor' ? '双色球' : '大乐透'}</span>
+                <span class="pending-ticket-period">期号: ${ticket.period}</span>
+            </div>
+            <div class="pending-ticket-numbers">
+                ${formatTicketNumbers(ticket)}
+            </div>
+            <div class="pending-ticket-info">
+                <span>投注金额: ¥${ticket.cost}</span>
+                <span>购买时间: ${new Date(ticket.purchaseTime).toLocaleString().split(' ')[0]}</span>
+            </div>
+        </div>
+    `).join('');
+    
+    // 如果超过3条记录，添加滚动提示
+    if (pendingTickets.length > 3) {
+        const scrollHint = document.createElement('div');
+        scrollHint.style.cssText = `
+            text-align: center;
+            padding: 10px;
+            color: #6c757d;
+            font-size: 14px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            border-radius: 0 0 12px 12px;
+        `;
+        scrollHint.textContent = `共 ${pendingTickets.length} 条记录，可滚动查看更多`;
+        container.parentNode.appendChild(scrollHint);
+    }
+}
+
+// 🔥 新增：更新中奖彩票显示
+function updateWinningTicketsDisplay() {
+    const container = document.getElementById('winningTickets');
+    if (!container) return;
+    
+    // 获取中奖的彩票（状态为won或claimed）
+    const winningTickets = userTickets.filter(ticket => ticket.status === 'won' || ticket.status === 'claimed');
+    
+    if (winningTickets.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 30px;">暂无中奖记录</p>';
+        return;
+    }
+    
+    // 按奖金金额倒序排列，大奖在前
+    const sortedWinningTickets = winningTickets.sort((a, b) => (b.prizeAmount || 0) - (a.prizeAmount || 0));
+    
+    // 生成中奖彩票HTML
+    const winningHTML = sortedWinningTickets.map(ticket => createWinningTicketHTML(ticket)).join('');
+    container.innerHTML = winningHTML;
+}
+
+// 🔥 新增：创建中奖彩票HTML
+function createWinningTicketHTML(ticket) {
+    const lotteryType = ticket.lotteryType === 'doubleColor' ? '双色球' : '大乐透';
+    const prizeAmount = ticket.prizeAmount || 0;
+    const prizeLevel = ticket.prizeLevel || ticket.prizeName || '未知奖级';
+    
+    // 🔥 更完善的状态判断逻辑
+    let claimStatus = '';
+    let claimStatusClass = '';
+    
+    if (ticket.status === 'claimed' || ticket.claimed === true) {
+        claimStatus = '✅ 已兑奖';
+        claimStatusClass = 'status-claimed';
+    } else if (ticket.status === 'won') {
+        claimStatus = '⏳ 待领奖';
+        claimStatusClass = 'status-unclaimed';
+    } else {
+        claimStatus = '❓ 待核验';
+        claimStatusClass = 'status-unknown';
+    }
+    
+    // 获取开奖结果用于对比
+    const drawResult = getDrawResultForTicket(ticket);
+    
+    // 生成完整的号码显示
+    const numbersHTML = createWinningNumbersHTML(ticket, drawResult);
+    
+    // 🔥 添加购买时间和期号信息
+    const purchaseDate = new Date(ticket.purchaseTime).toLocaleDateString();
+    const period = ticket.period || '未知期号';
         
-        return `
-            <div class="check-result-item ${winningTickets.length > 0 ? 'has-winning' : ''}">
-                <div class="result-header">
-                    <h4>${type === 'doubleColor' ? '双色球' : '大乐透'} - 期号: ${period}</h4>
-                    <div class="result-summary">
-                        投注 ${tickets.length} 张，中奖 ${winningTickets.length} 张
-                        ${totalPrize > 0 ? `，总奖金 ¥${totalPrize.toLocaleString()}` : ''}
-                    </div>
+    return `
+        <div class="winning-ticket-item">
+            <div class="winning-ticket-header">
+                <div class="winning-ticket-type">${lotteryType}</div>
+                <div class="winning-prize-info">
+                    <div class="winning-prize-level">${prizeLevel}</div>
+                    <div class="winning-prize-amount">¥${prizeAmount.toLocaleString()}</div>
                 </div>
-                <div class="tickets-detail">
-                    ${tickets.map(ticket => `
-                        <div class="ticket-check-item ${ticket.status}">
-                            <div class="ticket-numbers">${formatTicketNumbers(ticket)}</div>
-                            <div class="ticket-result">
-                                ${ticket.status === 'won' ? `${ticket.prizeName} ¥${ticket.prizeAmount.toLocaleString()}` : 
-                                  ticket.status === 'claimed' ? `已兑奖 ¥${ticket.prizeAmount.toLocaleString()}` : 
-                                  ticket.status === 'lost' ? '未中奖' : '等待开奖'}
-                            </div>
-                        </div>
-                    `).join('')}
+                <div class="winning-claim-status ${claimStatusClass}">${claimStatus}</div>
+            </div>
+            
+            <div class="winning-ticket-numbers">
+                ${numbersHTML}
+            </div>
+            
+            <div class="winning-ticket-details">
+                <div class="winning-ticket-info">
+                    <span class="ticket-period">期号: ${period}</span>
+                    <span class="ticket-date">购买: ${purchaseDate}</span>
+                    <span class="ticket-cost">投注: ¥${ticket.cost}</span>
+                </div>
+                <div class="winning-amount-display">
+                    <span class="amount-label">中奖金额：</span>
+                    <span class="amount-value">¥${prizeAmount.toLocaleString()}</span>
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
 }
+
+// 🔥 新增：创建中奖号码显示HTML
+function createWinningNumbersHTML(ticket, drawResult) {
+    if (ticket.lotteryType === 'doubleColor') {
+        // 双色球显示
+        const redNumbers = ticket.numbers || [];
+        const blueNumber = ticket.blueNumber;
+        const winningRed = drawResult ? drawResult.red || [] : [];
+        const winningBlue = drawResult ? drawResult.blue : null;
+        
+        const redHTML = redNumbers.map(num => {
+            const isWinning = winningRed.includes(num);
+            return `<div class="winning-number-ball red-ball ${isWinning ? 'winning' : ''}">${num.toString().padStart(2, '0')}</div>`;
+        }).join('');
+        
+        const blueHTML = `<div class="winning-number-ball blue-ball ${blueNumber === winningBlue ? 'winning' : ''}">${blueNumber.toString().padStart(2, '0')}</div>`;
+        
+        return `
+            <div class="winning-numbers-display">
+                <span style="color: #7f8c8d; font-weight: bold; margin-right: 8px;">红球:</span>
+                ${redHTML}
+                <span class="winning-separator">|</span>
+                <span style="color: #7f8c8d; font-weight: bold; margin-right: 8px;">蓝球:</span>
+                ${blueHTML}
+            </div>
+        `;
+    } else {
+        // 大乐透显示
+        const frontNumbers = ticket.frontNumbers || [];
+        const backNumbers = ticket.backNumbers || [];
+        const winningFront = drawResult ? drawResult.front || [] : [];
+        const winningBack = drawResult ? drawResult.back || [] : [];
+        
+        const frontHTML = frontNumbers.map(num => {
+            const isWinning = winningFront.includes(num);
+            return `<div class="winning-number-ball red-ball ${isWinning ? 'winning' : ''}">${num.toString().padStart(2, '0')}</div>`;
+    }).join('');
+        
+        const backHTML = backNumbers.map(num => {
+            const isWinning = winningBack.includes(num);
+            return `<div class="winning-number-ball blue-ball ${isWinning ? 'winning' : ''}">${num.toString().padStart(2, '0')}</div>`;
+        }).join('');
+        
+        return `
+            <div class="winning-numbers-display">
+                <span style="color: #7f8c8d; font-weight: bold; margin-right: 8px;">前区:</span>
+                ${frontHTML}
+                <span class="winning-separator">|</span>
+                <span style="color: #7f8c8d; font-weight: bold; margin-right: 8px;">后区:</span>
+                ${backHTML}
+            </div>
+        `;
+    }
+}
+
+// 🔥 新增：获取彩票对应的开奖结果
+function getDrawResultForTicket(ticket) {
+    const results = drawResults[ticket.lotteryType];
+    if (!results || results.length === 0) return null;
+    
+    // 如果有期号匹配，找对应期号的结果
+    if (ticket.period) {
+        return results.find(result => result.period === ticket.period);
+    }
+    
+    // 否则返回最新的开奖结果
+    return results[results.length - 1];
+}
+
+// 🔥 更新历史页面初始化
+function initializeHistoryPage() {
+    // 检查历史页面是否可见
+    const historyTab = document.getElementById('history');
+    if (historyTab && historyTab.classList.contains('active')) {
+        // 默认加载双色球历史，延迟一下确保DOM完全渲染
+        setTimeout(() => {
+            loadHistoryData('doubleColor');
+        }, 200);
+    }
+}
+
+// 🔥 确保在showTab中处理历史页面
+if (typeof showTab === 'function') {
+    const originalShowTab = showTab;
+    window.showTab = function(tabName) {
+        // 先执行原始的showTab函数
+        originalShowTab(tabName);
+        
+        // 如果切换到历史页面，初始化历史数据
+        if (tabName === 'history') {
+            setTimeout(() => {
+                try {
+                    initializeHistoryPage();
+                } catch (error) {
+                    console.error('历史页面初始化失败:', error);
+                }
+            }, 300);
+        }
+    };
+}
+
+// 🔥 更新中奖彩票显示的函数导出
+window.switchHistoryType = switchHistoryType;
+window.loadHistoryData = loadHistoryData;
+window.createHistoryItemHTML = createHistoryItemHTML;
+window.createWinningTicketHTML = createWinningTicketHTML;
+window.createWinningNumbersHTML = createWinningNumbersHTML;
+window.getDrawResultForTicket = getDrawResultForTicket;
 
 // 检查中奖彩票
 function checkWinningTickets(drawResult) {
@@ -4178,6 +6813,17 @@ function checkWinningTickets(drawResult) {
                 
                 stats.totalWins++;
                 stats.totalWinnings += winResult.amount;
+                
+                console.log(`🎉 彩票中奖！奖级：${winResult.level}，金额：¥${winResult.amount}`);
+                
+                // 🎉 触发庆祝动画
+                if (typeof celebrationManager !== 'undefined') {
+                    celebrationManager.triggerLotteryCelebration(
+                        winResult.level, 
+                        winResult.amount, 
+                        ticket.lotteryType
+                    );
+                }
             } else {
                 ticket.status = 'lost';
             }
@@ -4191,6 +6837,9 @@ function checkWinningTickets(drawResult) {
     
     updateTicketsList();
     updateStats();
+    // 🔥 更新中奖查询页面显示
+    updatePendingTicketsDisplay();
+    updateWinningTicketsDisplay();
     saveData();
 }
 
@@ -4292,6 +6941,9 @@ function claimAllWinnings() {
     updateAccountDisplay();
     updateStats();
     updateTicketsList();
+    // 🔥 更新中奖查询页面显示
+    updatePendingTicketsDisplay();
+    updateWinningTicketsDisplay();
     
     // 保存数据
     saveData();
@@ -4332,52 +6984,79 @@ function showClaimSuccessAlert(count, amount) {
     }, 4000);
 }
 
-// 更新开奖历史
+// 🔥 更新：重定向到新的历史页面更新函数
 function updateDrawHistory() {
     try {
-        const historyContainer = safeGetElement('drawHistory');
-        if (!historyContainer) return;
-        
-        const allResults = [...drawResults.doubleColor, ...drawResults.daletou]
-            .sort((a, b) => new Date(b.drawTime) - new Date(a.drawTime))
-            .slice(0, 10);
-        
-        if (allResults.length === 0) {
-            historyContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d;">暂无开奖记录</p>';
-            return;
+        // 检查是否在历史页面，如果是则更新对应的历史列表
+        const historyTab = document.getElementById('history');
+        if (historyTab && historyTab.classList.contains('active')) {
+            // 如果当前在历史页面，更新当前显示的历史类型
+            const activeHistoryList = document.querySelector('.history-list.active');
+            if (activeHistoryList) {
+                const listId = activeHistoryList.id;
+                if (listId === 'doubleColorHistory') {
+                    loadHistoryData('doubleColor');
+                } else if (listId === 'daletoHistory') {
+                    loadHistoryData('daletou');
+                }
+            }
+        } else {
+            // 如果不在历史页面，静默更新（数据会在用户访问历史页面时显示）
+
         }
-        
-        historyContainer.innerHTML = allResults.map(result => `
-            <div class="history-item">
-                <div class="history-header">
-                    <span class="lottery-type">${result.type === 'doubleColor' ? '双色球' : '大乐透'}</span>
-                    <span class="draw-period">期号: ${result.period}</span>
-                </div>
-                <div class="history-numbers">
-                    ${formatDrawResultNumbers(result)}
-                </div>
-                <div class="draw-time">开奖时间: ${result.drawTime}</div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('更新开奖历史错误:', error);
+            } catch (error) {
+
     }
 }
 
 // 格式化开奖结果号码
 function formatDrawResultNumbers(result) {
-    if (result.type === 'doubleColor') {
-        return `
-            ${result.red.map(num => `<span class="history-ball red-ball">${num}</span>`).join('')}
-            <span class="separator">|</span>
-            <span class="history-ball blue-ball">${result.blue}</span>
-        `;
-    } else {
-        return `
-            ${result.front.map(num => `<span class="history-ball front-ball">${num}</span>`).join('')}
-            <span class="separator">|</span>
-            ${result.back.map(num => `<span class="history-ball back-ball">${num}</span>`).join('')}
-        `;
+    try {
+        // 🔥 修复：确保result对象存在且有效
+        if (!result || typeof result !== 'object') {
+
+            return '<span class="error-text">数据错误</span>';
+        }
+        
+        if (result.type === 'doubleColor') {
+            // 🔥 修复：安全访问双色球数据
+            const redNumbers = Array.isArray(result.red) ? result.red : 
+                              Array.isArray(result.numbers) ? result.numbers : [];
+            const blueNumber = result.blue || result.blueNumber || '?';
+            
+            if (redNumbers.length === 0) {
+                return '<span class="error-text">红球数据缺失</span>';
+            }
+            
+            return `
+                ${redNumbers.map(num => `<span class="history-ball red-ball">${num}</span>`).join('')}
+                <span class="separator">|</span>
+                <span class="history-ball blue-ball">${blueNumber}</span>
+            `;
+        } else if (result.type === 'daletou') {
+            // 🔥 修复：安全访问大乐透数据
+            const frontNumbers = Array.isArray(result.front) ? result.front : 
+                                Array.isArray(result.frontNumbers) ? result.frontNumbers : [];
+            const backNumbers = Array.isArray(result.back) ? result.back : 
+                               Array.isArray(result.backNumbers) ? result.backNumbers : [];
+            
+            if (frontNumbers.length === 0 || backNumbers.length === 0) {
+                return '<span class="error-text">号码数据缺失</span>';
+            }
+            
+            return `
+                ${frontNumbers.map(num => `<span class="history-ball front-ball">${num}</span>`).join('')}
+                <span class="separator">|</span>
+                ${backNumbers.map(num => `<span class="history-ball back-ball">${num}</span>`).join('')}
+            `;
+        } else {
+            // 🔥 处理未知类型
+
+            return '<span class="error-text">未知类型</span>';
+        }
+    } catch (error) {
+
+        return '<span class="error-text">格式化失败</span>';
     }
 }
 
@@ -4411,256 +7090,112 @@ function playClaimSuccessSound() {
 }
 // 在文件末尾添加缺失的音效函数
 
-// 音频管理器 - 统一管理音频上下文
+// 🔥 修复AudioContext自动播放问题
 class AudioManager {
     constructor() {
         this.audioContext = null;
-        this.isEnabled = true;
-        this.initAudioContext();
+        this.isEnabled = false;
+        this.userInteracted = false;
+        this.pendingSounds = [];
+        this.errorCount = 0;
+        this.maxErrors = 1; // 🔥 减少错误日志次数
+        this.isInitializing = false;
+        
+        // 🔥 延迟初始化，避免立即创建AudioContext
+        this.setupUserInteractionListener();
     }
     
+    // 🔥 设置用户交互监听器
+    setupUserInteractionListener() {
+        if (this.userInteracted) return; // 避免重复设置
+        
+        const events = ['click', 'touchstart', 'keydown', 'mousedown'];
+        let isListening = true;
+        
+        const handleFirstInteraction = (e) => {
+            if (!isListening || this.userInteracted) return;
+            
+            isListening = false;
+            this.userInteracted = true;
+            
+            // 移除所有事件监听器
+            events.forEach(event => {
+                document.removeEventListener(event, handleFirstInteraction, true);
+            });
+            
+            // 延迟初始化AudioContext
+            setTimeout(() => {
+                this.initAudioContext();
+            }, 100);
+            
+
+        };
+        
+        // 添加事件监听器
+        events.forEach(event => {
+            document.addEventListener(event, handleFirstInteraction, true);
+        });
+        
+
+    }
+    
+    // 初始化音频上下文
     initAudioContext() {
+        if (this.isInitializing || this.audioContext) return;
+        
         try {
-            // 检查浏览器支持
-            if (typeof AudioContext !== 'undefined') {
-                this.audioContext = new AudioContext();
-            } else if (typeof webkitAudioContext !== 'undefined') {
-                this.audioContext = new webkitAudioContext();
-            } else {
-                console.warn('浏览器不支持 Web Audio API');
-                this.isEnabled = false;
+            this.isInitializing = true;
+            
+            // 🔥 只在用户交互后创建
+            if (!this.userInteracted) {
+                this.isInitializing = false;
                 return;
             }
             
-            // 处理音频上下文状态
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
             if (this.audioContext.state === 'suspended') {
-                // 等待用户交互后恢复音频上下文
-                document.addEventListener('click', () => {
-                    if (this.audioContext.state === 'suspended') {
-                        this.audioContext.resume().catch(err => {
-                            console.log('音频上下文恢复失败:', err);
-                        });
+                this.audioContext.resume().then(() => {
+                    this.isEnabled = true;
+                    this.isInitializing = false;
+
+                    this.playPendingSounds();
+                }).catch(error => {
+                    this.isInitializing = false;
+                    if (this.errorCount < this.maxErrors) {
+
+                        this.errorCount++;
                     }
-                }, { once: true });
-            }
-
-
-
-// 修复getCurrentPeriod函数，确保支持大乐透
-function getCurrentPeriod(type = currentDrawType) {
-    const now = new Date();
-    const year = now.getFullYear();
-    const dayOfYear = Math.floor((now - new Date(year, 0, 0)) / (1000 * 60 * 60 * 24));
-    
-    if (type === 'doubleColor') {
-        // 双色球：每周二、四、日开奖，一年约150期
-        return `${year}${String(Math.floor(dayOfYear / 2.4) + 1).padStart(3, '0')}`;
-    } else {
-        // 大乐透：每周一、三、六开奖，一年约150期
-        return `${year}${String(Math.floor(dayOfYear / 2.4) + 1).padStart(3, '0')}`;
-    }
-}
-
-// 修复updatePrizeTable函数，确保正确显示大乐透奖金
-function updatePrizeTable() {
-    const tbody = document.getElementById('prizeTableBody');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    const config = prizeConfig[currentDrawType];
-    if (!config) {
-        console.error('未找到奖金配置:', currentDrawType);
-        return;
-    }
-    
-    const levels = {};
-    
-    // 按奖级分组
-    Object.keys(config).forEach(key => {
-        const prize = config[key];
-        if (!levels[prize.level]) {
-            levels[prize.level] = {
-                name: prize.name,
-                conditions: [],
-                amount: prize.amount
-            };
-        }
-        levels[prize.level].conditions.push(key);
-    });
-    
-    // 按奖级排序并显示
-    Object.keys(levels).sort((a, b) => a - b).forEach(level => {
-        const prize = levels[level];
-        const row = document.createElement('tr');
-        
-        // 格式化中奖条件
-        const conditions = prize.conditions.map(condition => {
-            const [main, special] = condition.split('-');
-            if (currentDrawType === 'doubleColor') {
-                return `${main}红+${special}蓝`;
+                });
             } else {
-                return `${main}前+${special}后`;
+                this.isEnabled = true;
+                this.isInitializing = false;
+                console.log('🎵 音频上下文创建成功');
+                this.playPendingSounds();
             }
-        }).join(' 或 ');
-        
-        row.innerHTML = `
-            <td>${prize.name}</td>
-            <td>${conditions}</td>
-            <td>¥${prize.amount.toLocaleString()}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// 修复drawFrontBalls函数（大乐透前区开奖）
-function drawFrontBalls() {
-    const chamberLabel = document.querySelector('.chamber-label');
-    const finalResults = document.getElementById('finalResults');
-    
-    if (!chamberLabel || !finalResults) return;
-    
-    chamberLabel.textContent = '🟡 正在摇出前区球...';
-    
-    const frontNumbers = generateRandomNumbers(35, 5);
-    
-    if (!window.currentDrawResult) {
-        window.currentDrawResult = {};
-    }
-    window.currentDrawResult.front = frontNumbers;
-    
-    frontNumbers.forEach((num, index) => {
-        setTimeout(() => {
-            const ball = document.createElement('div');
-            ball.className = 'final-ball';
-            ball.style.background = 'linear-gradient(45deg, #f39c12, #e67e22)';
-            ball.style.cssText += `
-                width: 45px;
-                height: 45px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 1.1em;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-                animation: ballAppear 0.8s ease-out;
-            `;
-            ball.textContent = num;
-            finalResults.appendChild(ball);
-            
-            playBallConfirmSound();
-            
-            if (index === frontNumbers.length - 1) {
-                chamberLabel.textContent = '🟡 前区摇奖完成！';
-            }
-        }, index * 700);
-    });
-}
-
-// 修复drawBackBalls函数（大乐透后区开奖）
-function drawBackBalls() {
-    const chamberLabel = document.querySelector('.chamber-label');
-    const finalResults = document.getElementById('finalResults');
-    
-    if (!chamberLabel || !finalResults) return;
-    
-    chamberLabel.textContent = '🟣 正在摇出后区球...';
-    
-    const backNumbers = generateRandomNumbers(12, 2);
-    window.currentDrawResult.back = backNumbers;
-    
-    // 添加分隔符
-    setTimeout(() => {
-        const separator = document.createElement('div');
-        separator.className = 'separator';
-        separator.textContent = '|';
-        separator.style.cssText = `
-            font-size: 2em;
-            color: white;
-            margin: 0 10px;
-            font-weight: bold;
-        `;
-        finalResults.appendChild(separator);
-    }, 200);
-    
-    backNumbers.forEach((num, index) => {
-        setTimeout(() => {
-            const ball = document.createElement('div');
-            ball.className = 'final-ball';
-            ball.style.background = 'linear-gradient(45deg, #9b59b6, #8e44ad)';
-            ball.style.cssText += `
-                width: 45px;
-                height: 45px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 1.1em;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-                animation: ballAppear 0.8s ease-out;
-            `;
-            ball.textContent = num;
-            finalResults.appendChild(ball);
-            
-            playBallConfirmSound();
-            
-            if (index === backNumbers.length - 1) {
-                chamberLabel.textContent = '🟣 后区摇奖完成！';
-            }
-        }, 500 + index * 800);
-    });
-}
-
-// 修复formatDrawResultNumbers函数，确保正确显示大乐透开奖结果
-function formatDrawResultNumbers(result) {
-    if (result.type === 'doubleColor') {
-        return `
-            ${result.red.map(num => `<span class="history-ball red-ball">${num}</span>`).join('')}
-            <span class="separator">|</span>
-            <span class="history-ball blue-ball">${result.blue}</span>
-        `;
-    } else {
-        return `
-            ${result.front.map(num => `<span class="history-ball front-ball">${num}</span>`).join('')}
-            <span class="separator">|</span>
-            ${result.back.map(num => `<span class="history-ball back-ball">${num}</span>`).join('')}
-        `;
-    }
-}
-
-// 确保在页面加载时正确初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 初始化开奖类型
-    currentDrawType = 'doubleColor';
-    
-    // 延迟初始化，确保DOM完全加载
-    setTimeout(() => {
-        updateDrawTitle();
-        updatePrizeTable();
-    }, 100);
-});
-
         } catch (error) {
-            console.warn('音频上下文初始化失败:', error);
+            this.isInitializing = false;
+            if (this.errorCount < this.maxErrors) {
+                console.warn('⚠️ 音频初始化失败:', error);
+                this.errorCount++;
+            }
             this.isEnabled = false;
         }
     }
     
+    // 播放声音
     playSound(frequency, duration = 0.2, volume = 0.1) {
-        if (!this.isEnabled || !this.audioContext) {
+        // 🔥 严格检查条件
+        if (!this.userInteracted) {
+            // 不记录到待播放队列，直接忽略
+            return;
+        }
+        
+        if (!this.isEnabled || !this.audioContext || this.isInitializing) {
             return;
         }
         
         try {
-            if (this.audioContext.state === 'closed') {
-                this.initAudioContext();
-                if (!this.audioContext) return;
-            }
-            
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             
@@ -4668,23 +7203,31 @@ document.addEventListener('DOMContentLoaded', function() {
             gainNode.connect(this.audioContext.destination);
             
             oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-            gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+            gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
             
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + duration);
-            
         } catch (error) {
-            console.log('音频播放失败:', error);
-            if (error.message.includes('audio device') || error.message.includes('WebAudio renderer')) {
-                this.isEnabled = false;
-                console.warn('音频设备错误，已禁用音效');
-            }
+            // 完全静默处理
         }
     }
     
+    // 播放待播放的声音
+    playPendingSounds() {
+        // 清空待播放队列，不播放hover声音
+        this.pendingSounds = [];
+    }
+    
+    // 播放音序
     playSequence(notes, interval = 150, volume = 0.1) {
-        if (!this.isEnabled || !this.audioContext) {
+        if (!this.userInteracted) {
+            // 不记录到待播放队列，直接忽略
+            return;
+        }
+        
+        if (!this.isEnabled || !this.audioContext || this.isInitializing) {
             return;
         }
         
@@ -4698,6 +7241,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 创建全局音频管理器实例
 const audioManager = new AudioManager();
+
+// 🔥 确保在DOM加载完成后再进行任何音频相关操作
+document.addEventListener('DOMContentLoaded', function() {
+    // 延迟一些时间确保所有模块都加载完成
+    setTimeout(() => {
+        console.log('🎵 音频系统准备就绪，等待用户交互...');
+    }, 500);
+});
 
 // 开奖类型切换函数
 function switchDrawType(type) {
@@ -4713,7 +7264,7 @@ function switchDrawType(type) {
             targetBtn.classList.add('active');
         }
     } catch (error) {
-        console.log('开奖类型按钮更新失败:', error);
+        console.warn('开奖类型按钮更新失败:', error);
     }
     
     updateDrawTitle();
@@ -4747,10 +7298,10 @@ function getCurrentPeriod(type = currentDrawType) {
     }
 }
 
-// 音效函数
+// 🔥 为现有的音频函数添加用户交互检查
 function playRandomSelectSound() {
-    audioManager.playSound(400, 0.5, 0.1);
-    setTimeout(() => audioManager.playSound(800, 0.3, 0.08), 200);
+    const notes = [523, 659, 784, 1047];
+    audioManager.playSequence(notes, 100, 0.1);
 }
 
 function playQuantitySetSound() {
@@ -4767,7 +7318,7 @@ function playSelectSound() {
 }
 
 function playDeselectSound() {
-    audioManager.playSound(600, 0.1, 0.1);
+    audioManager.playSound(400, 0.1, 0.1);
 }
 
 function playLimitSound() {
@@ -4786,13 +7337,17 @@ function playRandomCompleteSound() {
 }
 
 function playBetSuccessSound() {
-    const notes = [523, 659, 784, 1047, 1319];
-    audioManager.playSequence(notes, 150, 0.12);
+    const notes = [523, 659, 784];
+    audioManager.playSequence(notes, 150, 0.15);
 }
 
-function playRandomTickSound() {
-    audioManager.playSound(800 + Math.random() * 400, 0.1, 0.05);
-}
+// playRandomTickSound() 函数已在上方定义，这里删除重复的
+
+// 🔇 重写所有可能触发AudioContext的hover函数
+// 🔊 全局hover音效已移动到InteractionEnhancer类中，移除此禁用函数
+
+// 🔊 启用InteractionEnhancer类中的playHoverSound方法
+// 移除之前的禁用代码，使用类内部的实现
 
 // 错误处理
 window.addEventListener('error', function(e) {
@@ -4820,65 +7375,312 @@ window.addEventListener('unhandledrejection', function(e) {
     }
 });
 
-// 调试工具
-window.debugLottery = {
-    checkHealth: function() {
-        const checks = {
-            dom: document.readyState === 'complete',
-            localStorage: typeof Storage !== 'undefined',
-            audioContext: audioManager.isEnabled,
-            showTab: typeof showTab === 'function'
+
+
+// 🎉 庆祝动画管理器
+class CelebrationManager {
+    constructor() {
+        this.activeCelebrations = new Set();
+    }
+    
+    // 🎊 触发中奖庆祝动画
+    triggerLotteryCelebration(prizeLevel, prizeAmount, lotteryType) {
+        // 根据奖级决定庆祝强度
+        if (prizeLevel <= 3) {
+            // 1-3等奖：超级庆祝
+            this.createMegaCelebration(prizeLevel, prizeAmount, lotteryType);
+        } else if (prizeLevel <= 6) {
+            // 4-6等奖：中等庆祝
+            this.createModerateWin(prizeLevel, prizeAmount);
+        } else {
+            // 小奖：简单庆祝
+            this.createSimpleCelebration();
+        }
+        
+        // 播放庆祝音效
+        this.playCelebrationSound(prizeLevel);
+    }
+    
+    // 🎆 超级庆祝（1-3等奖）
+    createMegaCelebration(prizeLevel, prizeAmount, lotteryType) {
+        // 创建庆祝覆盖层
+        const overlay = this.createCelebrationOverlay();
+        
+        // 大奖文字
+        const winText = document.createElement('div');
+        winText.className = 'big-win-text';
+        winText.innerHTML = `
+            🎊 恭喜中${prizeLevel}等奖！🎊<br>
+            <span style="font-size: 0.7em;">¥${prizeAmount.toLocaleString()}</span>
+        `;
+        overlay.appendChild(winText);
+        
+        // 彩虹横幅
+        const banner = document.createElement('div');
+        banner.className = 'celebration-banner';
+        banner.textContent = `🏆 ${lotteryType === 'doubleColor' ? '双色球' : '大乐透'}超级大奖！🏆`;
+        overlay.appendChild(banner);
+        
+        // 撒花效果
+        this.createConfetti(overlay, 100);
+        
+        // 鞭炮效果
+        this.createFireworks(overlay, 20);
+        
+        // 金币雨
+        this.createCoinRain(overlay, 50);
+        
+        // 8秒后自动清理
+        setTimeout(() => {
+            this.removeCelebration(overlay);
+        }, 8000);
+    }
+    
+    // 🎈 中等庆祝（4-6等奖）
+    createModerateWin(prizeLevel, prizeAmount) {
+        const overlay = this.createCelebrationOverlay();
+        
+        const winText = document.createElement('div');
+        winText.className = 'big-win-text';
+        winText.style.fontSize = '3rem';
+        winText.innerHTML = `
+            🎉 恭喜中${prizeLevel}等奖！🎉<br>
+            <span style="font-size: 0.7em;">¥${prizeAmount.toLocaleString()}</span>
+        `;
+        overlay.appendChild(winText);
+        
+        // 适量撒花
+        this.createConfetti(overlay, 50);
+        
+        // 少量鞭炮
+        this.createFireworks(overlay, 8);
+        
+        // 5秒后清理
+        setTimeout(() => {
+            this.removeCelebration(overlay);
+        }, 5000);
+    }
+    
+    // 🎁 简单庆祝（小奖）
+    createSimpleCelebration() {
+        const overlay = this.createCelebrationOverlay();
+        
+        const winText = document.createElement('div');
+        winText.className = 'big-win-text';
+        winText.style.fontSize = '2.5rem';
+        winText.textContent = '🎉 恭喜中奖！🎉';
+        overlay.appendChild(winText);
+        
+        // 少量撒花
+        this.createConfetti(overlay, 20);
+        
+        // 3秒后清理
+        setTimeout(() => {
+            this.removeCelebration(overlay);
+        }, 3000);
+    }
+    
+    // 🎯 转盘大奖庆祝
+    triggerWheelCelebration(winAmount) {
+        const wheelContainer = document.querySelector('#wheelModal .wheel-container');
+        if (!wheelContainer) return;
+        
+        // 添加转盘特效
+        const effect = document.createElement('div');
+        effect.className = 'wheel-jackpot-effect';
+        wheelContainer.appendChild(effect);
+        
+        // 创建全屏庆祝
+        const overlay = this.createCelebrationOverlay();
+        
+        const winText = document.createElement('div');
+        winText.className = 'big-win-text';
+        winText.innerHTML = `
+            🎰 转盘大奖！🎰<br>
+            <span style="font-size: 0.7em;">¥${winAmount.toLocaleString()}</span>
+        `;
+        overlay.appendChild(winText);
+        
+        // 金币雨效果
+        this.createCoinRain(overlay, 80);
+        
+        // 鞭炮效果
+        this.createFireworks(overlay, 15);
+        
+        // 播放特殊音效
+        this.playWheelJackpotSound();
+        
+        // 6秒后清理
+        setTimeout(() => {
+            this.removeCelebration(overlay);
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 6000);
+    }
+    
+    // 创建庆祝覆盖层
+    createCelebrationOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'celebration-overlay';
+        document.body.appendChild(overlay);
+        this.activeCelebrations.add(overlay);
+        return overlay;
+    }
+    
+    // 🚀 性能优化：创建撒花效果（批量处理）
+    createConfetti(container, count) {
+        const fragment = document.createDocumentFragment();
+        const batchSize = 20;
+        let created = 0;
+        
+        const createBatch = () => {
+            const currentBatch = Math.min(batchSize, count - created);
+            
+            for (let i = 0; i < currentBatch; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.animationDelay = Math.random() * 3 + 's';
+                confetti.style.animationDuration = (Math.random() * 1 + 2) + 's';
+                fragment.appendChild(confetti);
+                created++;
+            }
+            
+            if (created < count) {
+                requestAnimationFrame(createBatch);
+            } else {
+                container.appendChild(fragment);
+            }
         };
         
-        console.log('系统健康检查:', checks);
-        return Object.values(checks).every(check => check);
-    },
-    
-    testSounds: function() {
-        console.log('测试音效系统...');
-        if (!audioManager.isEnabled) {
-            console.warn('音效系统已禁用');
-            return;
-        }
-        
-        playSelectSound();
-        setTimeout(() => playDeselectSound(), 500);
-        setTimeout(() => playRandomSelectSound(), 1000);
-        setTimeout(() => playBallConfirmSound(), 1500);
-        setTimeout(() => playRandomCompleteSound(), 2000);
-    },
-    
-    fixAudio: function() {
-        console.log('尝试修复音频系统...');
-        audioManager.initAudioContext();
-        if (audioManager.isEnabled) {
-            console.log('✅ 音频系统修复成功');
-            this.testSounds();
-        } else {
-            console.warn('❌ 音频系统修复失败');
-        }
-    },
-    
-    reinitialize: function() {
-        if (confirm('确定要重新初始化系统吗？')) {
-            location.reload();
-        }
-    },
-    
-    disableAudio: function() {
-        audioManager.isEnabled = false;
-        console.log('音效已禁用');
-    },
-    
-    enableAudio: function() {
-        audioManager.isEnabled = true;
-        audioManager.initAudioContext();
-        console.log('音效已启用');
+        createBatch();
     }
-};
+    
+    // 创建鞭炮效果
+    createFireworks(container, count) {
+        const colors = ['red', 'blue', 'gold', 'green', 'purple'];
+        
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                const firework = document.createElement('div');
+                firework.className = `firework ${colors[Math.floor(Math.random() * colors.length)]}`;
+                firework.style.left = (Math.random() * 80 + 10) + '%';
+                firework.style.top = (Math.random() * 60 + 20) + '%';
+                container.appendChild(firework);
+                
+                // 1秒后移除
+                setTimeout(() => {
+                    if (firework.parentNode) {
+                        firework.parentNode.removeChild(firework);
+                    }
+                }, 1000);
+            }, Math.random() * 2000);
+        }
+    }
+    
+    // 🚀 性能优化：创建金币雨（批量处理 + requestAnimationFrame）
+    createCoinRain(container, count) {
+        const fragment = document.createDocumentFragment();
+        const batchSize = 15;
+        let created = 0;
+        
+        const createBatch = () => {
+            const currentBatch = Math.min(batchSize, count - created);
+            
+            for (let i = 0; i < currentBatch; i++) {
+                const coin = document.createElement('div');
+                coin.className = 'coin';
+                coin.style.left = Math.random() * 100 + '%';
+                coin.style.animationDelay = Math.random() * 1 + 's';
+                fragment.appendChild(coin);
+                created++;
+            }
+            
+            if (created < count) {
+                // 延迟创建下一批，避免一次性创建太多
+                setTimeout(() => requestAnimationFrame(createBatch), Math.random() * 200);
+            } else {
+                container.appendChild(fragment);
+            }
+        };
+        
+        createBatch();
+    }
+    
+    // 播放庆祝音效
+    playCelebrationSound(prizeLevel) {
+        try {
+            if (typeof audioManager !== 'undefined' && audioManager.userInteracted) {
+                if (prizeLevel <= 3) {
+                    // 大奖音效：连续上升音调
+                    this.playJackpotSound();
+                } else {
+                    // 小奖音效：欢快音调
+                    this.playWinSound();
+                }
+            }
+        } catch (error) {
+            // 忽略音效播放错误
+        }
+    }
+    
+    // 大奖音效
+    playJackpotSound() {
+        const notes = [523, 659, 784, 1047, 1319]; // C-E-G-C-E 音阶
+        notes.forEach((freq, index) => {
+            setTimeout(() => {
+                audioManager.playSound(freq, 0.3, 0.4);
+            }, index * 200);
+        });
+    }
+    
+    // 中奖音效
+    playWinSound() {
+        const melody = [659, 784, 880, 1047]; // E-G-A-C
+        melody.forEach((freq, index) => {
+            setTimeout(() => {
+                audioManager.playSound(freq, 0.2, 0.3);
+            }, index * 150);
+        });
+    }
+    
+    // 转盘大奖音效
+    playWheelJackpotSound() {
+        // 播放特殊的转盘获胜音效
+        const spinWinMelody = [440, 554, 659, 880, 1109, 1319]; // A-C#-E-A-C#-E
+        spinWinMelody.forEach((freq, index) => {
+            setTimeout(() => {
+                audioManager.playSound(freq, 0.25, 0.35);
+            }, index * 180);
+        });
+    }
+    
+    // 移除庆祝效果
+    removeCelebration(overlay) {
+        if (overlay && overlay.parentNode) {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+                this.activeCelebrations.delete(overlay);
+            }, 500);
+        }
+    }
+    
+    // 清理所有庆祝效果
+    clearAllCelebrations() {
+        this.activeCelebrations.forEach(overlay => {
+            this.removeCelebration(overlay);
+        });
+    }
+}
 
-console.log('🎲 彩票系统已完全加载');
-console.log('使用 debugLottery.checkHealth() 检查系统状态');
+// 创建全局庆祝管理器实例
+const celebrationManager = new CelebrationManager();
+
+// 系统初始化完成
 
 // 防沉迷相关功能
 function showResponsibleGamingModal() {
@@ -4983,3 +7785,7 @@ function closeResponsibilityModal() {
         modal.remove();
     }
 }
+
+
+
+
